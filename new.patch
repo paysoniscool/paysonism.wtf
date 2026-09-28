@@ -1,0 +1,2088 @@
+diff --git a/CONTENT_EXPANSION_PLAN.md b/CONTENT_EXPANSION_PLAN.md
+new file mode 100644
+index 0000000..f9dc64a
+--- /dev/null
++++ b/CONTENT_EXPANSION_PLAN.md
+@@ -0,0 +1,37 @@
++# Content expansion plan
++
++## Constraint and baseline
++
++This is a content-and-page-architecture expansion, not a layout redesign. The existing Mercury site is the only design system: every new page keeps the established banner, five-slot banner navigation, 202px `#col-left` / 764px `#col-right` layout, `Vbox` / `Vnavbox` sidebar panels, `Cbox` content panels, project-card language, and existing footer. Later explicit typography and EQ requests add only narrow CSS refinements that use the existing palette, sprites, spacing language, and panel frames; no alternate visual system or third-party styling is introduced.
++
++## Page map
++
++- `music.html` — the music landing page. The left rail lists recent releases and its player-page links, plus platform links. The content rail contains featured productions, production setup, a customizable 10-band graphic EQ, and tracks with native inline audio controls.
++- `music-player.html?track=<id>` — a dedicated track detail/player page using the same shell. It reads a track from the music catalogue, plays its supplied MP3/audio URL directly, and shares the graphic EQ controls; invalid IDs get an in-site not-found state.
++- `business.html` — company index and profiles. The left rail is a company/year timeline linking to the matching overview panel. Every company profile has its own achievements timeline, description, logo slot, and optional 0–5 success score.
++- `projects.html` — full public repository catalogue for GitLab `paysonism` and GitHub `430L`. The page loads every public repository through each host's public API, filters the combined list by host from the left rail, shows source metadata with icon-led actions, and combines exact normalized name matches (plus a documented CorMem naming alias) into one entry with links to each source.
++
++The current homepage remains the introduction and selected-work teaser. Its banner navigation points to the new catalogue pages. Existing anchor sections and forum access remain reachable, and the forum gets links back into the expanded site.
++
++## Content model and data ownership
++
++No real tracks, production photos, company details, logos, or scores were supplied, so no personal facts are invented. To verify the interfaces, the editable arrays in `js/music-data.js` and `js/business-data.js` now contain clearly labeled dummy records, original generated MP3 EQ-test loops, an illustrative placeholder setup image, sample company logos, and fictional milestone records. Replace or remove these before publishing. A real audio entry supplies a local `assets/music/...` path or public audio URL. Company entries contain an ID, name, start/end years, summary, optional logo, optional 0–5 score, and an ordered list of dated milestones.
++
++Repository data is fetched live rather than copied into a stale hand-maintained snapshot: the APIs provide descriptions, source URLs, stars, forks, default branch, language, dates, archive/fork state, and ZIP download URLs. Both APIs are paginated. If a host is unavailable or rate-limited, the page still provides direct profile links and an explicit load status/error rather than silently presenting an incomplete archive as complete.
++
++## Implementation sequence
++
++1. Keep the existing shell and CSS unchanged; add this plan before page work.
++2. Add repeatable page shells and only existing Mercury classes; add page files to the static build copy list.
++3. Add music/business data contracts and safe DOM-based rendering for galleries, player links, company ratings and per-company milestone lists.
++4. Add the complete, deduplicated two-host project catalogue and status/fallback states.
++5. Connect home/forum navigation to the new pages, then run tests, build, and deploy-file verification.
++
++## Acceptance checks
++
++- New pages reuse the existing CSS file and Mercury panel structure; added typography and EQ styles remain within the current Mercury palette and sprite language.
++- Music page has all requested sections, clearly marked local MP3 test tracks, recent-project sidebar links, and a working EQ on each player. EQ uses smooth native peaking biquads, a frequency-response-derived headroom trim, a gentle final safety compressor, presets, bypass, and persisted custom band/preamp values.
++- Dedicated player resolves an ID and has a direct audio source; missing content is clearly represented without fabricated tracks.
++- Business sidebar years link to company panels, each profile owns its own milestone list, and unknown values are not fabricated.
++- Projects fetch all pages from both public APIs, preserve one combined entry for duplicates while retaining both source/download links, include current stars and other available metadata, and source filters work without navigation.
++- `npm run verify` passes and the new pages are included in `dist/client/`.
+diff --git a/README.md b/README.md
+index decf60b..9669820 100644
+--- a/README.md
++++ b/README.md
+@@ -25,7 +25,7 @@ Open `http://127.0.0.1:8787`, then visit `forum.html`. To use a different port,
+ | Command | Purpose |
+ | --- | --- |
+ | `npm run dev` | Start the local site and local chat API. |
+-| `npm run test` | Run the chat behavior tests. |
++| `npm run test` | Run the chat, forum, and portfolio-page tests. |
+ | `npm run build` | Create deployable output in `dist/`. |
+ | `npm run verify` | Test, build, and verify required deployment files. |
+ | `npm run clean` | Remove generated `dist/` output. |
+@@ -33,15 +33,33 @@ Open `http://127.0.0.1:8787`, then visit `forum.html`. To use a different port,
+ 
+ ## Project map
+ 
+-- `index.html` — portfolio content and site structure.
++- `index.html` — home introduction and selected project features.
++- `projects.html` — complete live public repository catalogue for GitLab `paysonism` and GitHub `430L`.
++- `music.html` and `music-player.html` — music index and per-track player pages.
++- `business.html` — company overview panels and per-company timelines.
+ - `forum.html` — Mercury-themed community forum page.
+-- `css/mercury.css` — all visual styling.
++- `css/mercury.css` — all visual styling; new pages reuse the existing Mercury classes and stylesheet.
+ - `theme/` and `assets/` — images and existing Y2K UI assets.
+ - `js/chat.js` and `js/forum.js` — browser clients.
++- `js/music-data.js` and `js/business-data.js` — editable music and company content records.
++- `js/music.js`, `js/business.js`, and `js/projects.js` — the new page renderers and repository catalogue client.
++- `CONTENT_EXPANSION_PLAN.md` — page map, content model, and visual/functional acceptance checks.
+ - `worker/index.js` — production Worker with chat and forum APIs.
+ - `db/schema.ts` and `drizzle/` — production database schema and migrations.
+ - `scripts/` — cross-platform developer scripts.
+ 
++## Adding music and company content
++
++Music records are maintained in `js/music-data.js`. The current entries are visibly marked dummy records for verifying the display; replace them with track objects that have a stable `id`, title, and an `audio` URL/path (for example `assets/music/your-track.mp3`). Set `featured: true` to feature a production. Setup objects use `image`, `title`, and optional caption fields; platform records use `name` and `url`. Replace the generated sample photo and the two original test MP3s in `assets/music/` when adding your real work.
++
++Both the music index and dedicated `music-player.html?track=<id>` page include a customizable 10-band graphic EQ. It uses native Web Audio peaking biquads, smooth parameter changes, saved band/preamp settings, preset curves, bypass, and response-measured automatic headroom. Cross-origin audio files must permit CORS for Web Audio processing; local MP3 files work without that extra setup.
++
++Company records are maintained in `js/business-data.js`. The two current sample companies, example dates, ratings, logo assets, URLs, and achievements are fictional placeholders; replace or remove every marked value. Each record can include `id`, `name`, `startYear`, `endYear` or `current: true`, `description`, `logo`, `website`, `score` (0–5), and a `timeline` array of `{ date, title, description }` milestones. Every company renders its own achievements timeline.
++
++The full repository page fetches the public GitLab and GitHub APIs on page load, follows pagination, groups matching repository names, and links to source, ZIP, clone, README, issues, and releases when available. The left-rail source buttons filter the combined catalogue by host. If either public API is unavailable or rate-limited, the page marks the result as partial and keeps direct profile links available.
++
++Site typography retains Verdana/Tahoma for the main descriptions. Titles use a Bank Gothic-first font stack with the web-delivered Michroma fallback; compact technical labels use Rajdhani. Bank Gothic is used when installed locally, since it is not bundled as an unlicensed font file.
++
+ ## Production forum configuration
+ 
+ Production uses a Cloudflare Worker with a D1 database binding named `DB`. Apply every migration in `drizzle/` before deploying the Worker.
+diff --git a/assets/business/northstar-sample.svg b/assets/business/northstar-sample.svg
+new file mode 100644
+index 0000000..56b1d53
+--- /dev/null
++++ b/assets/business/northstar-sample.svg
+@@ -0,0 +1,8 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="260" height="120" viewBox="0 0 260 120">
++  <rect width="260" height="120" fill="#111"/>
++  <path d="M0 8h260M0 112h260" stroke="#4b5960" stroke-width="2"/>
++  <path d="M48 22 55 49 82 56 55 63 48 90 41 63 14 56 41 49Z" fill="#829eae"/>
++  <path d="M48 36v40M28 56h40" stroke="#d5eaf4" stroke-width="2"/>
++  <text x="96" y="55" fill="#aeb8bd" font-family="Arial,sans-serif" font-size="18" letter-spacing="2">NORTHSTAR</text>
++  <text x="97" y="78" fill="#8d4e4e" font-family="monospace" font-size="11" letter-spacing="3">SAMPLE COMPANY</text>
++</svg>
+diff --git a/assets/business/relay-sample.svg b/assets/business/relay-sample.svg
+new file mode 100644
+index 0000000..2a94d45
+--- /dev/null
++++ b/assets/business/relay-sample.svg
+@@ -0,0 +1,7 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="260" height="120" viewBox="0 0 260 120">
++  <rect width="260" height="120" fill="#111"/>
++  <path d="M0 8h260M0 112h260" stroke="#4b5960" stroke-width="2"/>
++  <path d="M17 67h18l10-26 15 42 13-28 9 12h10" fill="none" stroke="#8d4e4e" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter"/>
++  <text x="112" y="55" fill="#aeb8bd" font-family="Arial,sans-serif" font-size="18" letter-spacing="3">RELAY</text>
++  <text x="113" y="78" fill="#829eae" font-family="monospace" font-size="11" letter-spacing="3">SAMPLE COMPANY</text>
++</svg>
+diff --git a/assets/music/ambient-test-demo.mp3 b/assets/music/ambient-test-demo.mp3
+new file mode 100644
+index 0000000..990ed4e
+Binary files /dev/null and b/assets/music/ambient-test-demo.mp3 differ
+diff --git a/assets/music/studio-setup-sample.jpg b/assets/music/studio-setup-sample.jpg
+new file mode 100644
+index 0000000..5f9a65d
+Binary files /dev/null and b/assets/music/studio-setup-sample.jpg differ
+diff --git a/assets/music/synthwave-test-demo.mp3 b/assets/music/synthwave-test-demo.mp3
+new file mode 100644
+index 0000000..f00ab22
+Binary files /dev/null and b/assets/music/synthwave-test-demo.mp3 differ
+diff --git a/business.html b/business.html
+new file mode 100644
+index 0000000..f994753
+--- /dev/null
++++ b/business.html
+@@ -0,0 +1,51 @@
++<!DOCTYPE html>
++<html lang="en">
++  <head>
++    <meta charset="utf-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++    <meta name="description" content="Company profiles, business overview, and company-by-company timelines." />
++    <title>Payson - Business</title>
++    <link rel="stylesheet" type="text/css" href="css/mercury.css" />
++    <link href="https://fonts.googleapis.com/css?family=Aldrich" rel="stylesheet" type="text/css" />
++    <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" type="text/css" />
++  </head>
++  <body id="top">
++    <div id="mercury-wrapper">
++      <div id="mercury-banner">
++        <div id="mb-level-1"><div id="mb-level-1a"><div id="bulbs-L"></div></div><div id="mb-level-1b"><div id="electric"></div></div><div id="mb-level-1c"><div id="bulbs-R"></div></div></div>
++        <div id="mb-level-2"><div id="kr-lights"></div></div><div id="mb-level-3"></div>
++        <div id="mb-level-4"><div id="mb-level-4a"><div id="flashing-L"></div></div><div id="mb-level-4b"><div id="flashing-R"></div></div></div>
++        <div id="banner-nav"><ul>
++          <li><a href="index.html#about">ABOUT</a></li>
++          <li><a href="projects.html">PROJECTS</a></li>
++          <li><a href="music.html">MUSIC</a></li>
++          <li><a href="business.html">BUSINESS</a></li>
++          <li><a href="index.html#contact">CONTACT</a></li>
++        </ul></div>
++      </div>
++
++      <div id="content-area">
++        <div id="col-left">
++          <div class="Vnavbox"><div class="Vnavtop"><div class="VnavTitle">COMPANY TIMELINE</div></div><div class="Vnavmid"><div class="sb-butns" id="business-timeline"><p>Loading company history...</p></div></div><div class="Vnavbtm"></div></div>
++          <div class="Vnavbox"><div class="Vnavtop"><div class="VnavTitle">EXPLORE</div></div><div class="Vnavmid"><div class="sb-butns"><ul>
++            <li><a class="sb-butn" href="index.html">Home</a></li><li><a class="sb-butn" href="projects.html">All projects</a></li><li><a class="sb-butn" href="music.html">Music</a></li><li><a class="sb-butn" href="forum.html">Community forum</a></li>
++          </ul></div></div><div class="Vnavbtm"></div></div>
++        </div>
++
++        <div id="col-right">
++          <div class="Cbox"><div class="Ctop"><div class="CTitle">BUSINESS &amp; COMPANY OVERVIEW</div></div><div class="Cmid"><div class="CInfo"><p>Company profiles, success ratings, and achievements are maintained as separate records so each company can have its own history.</p><p>Company names, descriptions, logos, dates, and ratings are intentionally left blank until the verified details are added to <strong>js/business-data.js</strong>.</p></div></div><div class="Cbtm"></div></div>
++          <div id="business-companies"><div class="Cbox"><div class="Ctop"><div class="CTitle">COMPANY PROFILES</div></div><div class="Cmid"><div class="CInfo"><p>Loading company profiles...</p></div></div><div class="Cbtm"></div></div></div>
++        </div>
++      </div>
++
++      <div id="mercury-footer"><div id="ft-level-1">
++        <div class="footer-roller footer-roller-left"><div class="footer-roller-viewport"><p class="footer-roller-line">Business, company projects, and milestones.</p></div></div>
++        <div class="ft-butns-box"><div class="ft-links"><ul><li><a class="ft-social" href="https://gitlab.com/paysonism" target="_blank" rel="noopener"><img src="theme/gitlab.svg" alt="GitLab" /></a></li><li><a class="ft-butn-2" href="#top" title="Page Top"></a></li><li><a class="ft-social" href="https://github.com/430L" target="_blank" rel="noopener"><img src="theme/github.svg" alt="GitHub 430L" /></a></li></ul></div></div>
++        <div class="footer-roller footer-roller-right"><div class="footer-roller-viewport"><p class="footer-roller-line">Every company has its own timeline.</p></div></div>
++      </div><div id="ft-level-2"><div class="ft-butns-box2"><div class="ft-links2"><ul><li><a class="ft-butn2-1" href="index.html">Home</a></li><li><a class="ft-butn2-1" href="projects.html">Projects</a></li><li><a class="ft-butn2-1" href="music.html">Music</a></li><li><a class="ft-butn2-1" href="forum.html">Forum</a></li><li><a class="ft-butn2-1" href="#top">Top</a></li></ul></div></div></div></div>
++    </div>
++    <script type="text/javascript" src="js/footer-roller.js"></script>
++    <script type="module" src="js/mercury-interactions.js"></script>
++    <script type="module" src="js/business.js"></script>
++  </body>
++</html>
+diff --git a/css/mercury.css b/css/mercury.css
+index 9c29b10..2ac6861 100644
+--- a/css/mercury.css
++++ b/css/mercury.css
+@@ -1635,3 +1635,253 @@ textarea.forum-textarea { min-height: 145px; }
+ 	.mercury-arcade-banner-readout.is-visible,
+ 	.mercury-arcade-panel-readout.is-visible { opacity: .9; }
+ }
++
++/* Typography and content controls for the extended portfolio pages. */
++.CTitle,
++.VTitle,
++.VnavTitle,
++.project-title,
++.forum-topic-heading,
++.forum-thread-title,
++.forum-section-label,
++.forum-topic-link,
++.forum-page .forum-topic-heading,
++.forum-page .forum-thread-title,
++.forum-page .forum-section-label,
++.forum-page .forum-topic-link {
++	font-family: "Bank Gothic", "Michroma", "Aldrich", Tahoma, sans-serif;
++}
++.project-kicker,
++.project-meta,
++.forum-kicker,
++.forum-meta {
++	font-family: "Rajdhani", "Courier New", Courier, monospace;
++}
++.forum-page .CTitle,
++.forum-page .VTitle,
++.forum-page .VnavTitle {
++	font-family: "Bank Gothic", "Michroma", "Aldrich", Tahoma, sans-serif;
++}
++
++/* Mercury graphic equalizer: existing charcoal, steel, and cabinet-control language. */
++.eq-presets {
++	display: flex;
++	flex-wrap: wrap;
++	gap: 5px;
++	padding: 0px 0px 9px 0px;
++}
++.eq-action {
++	box-sizing: border-box;
++	min-width: 82px;
++	height: 28px;
++	padding: 0px 9px;
++	margin: 0px;
++	background: url('../theme/nav-btns.jpg') no-repeat center top;
++	border: 0px;
++	color: #999999;
++	font-family: "Rajdhani", "Aldrich", Tahoma, sans-serif;
++	font-size: 100%;
++	font-weight: 700;
++	letter-spacing: 1px;
++	line-height: 28px;
++	text-align: center;
++	text-shadow: 1px 1px 2px #000;
++}
++.eq-action:hover,
++.eq-action:focus,
++.eq-action[aria-pressed="true"] {
++	background-position: 0px -28px;
++	color: #C0C0C0;
++}
++.eq-action:focus-visible,
++.eq-slider:focus-visible,
++.eq-preamp-slider:focus-visible {
++	outline: 1px dotted #9E9E9E;
++	outline-offset: 2px;
++}
++.eq-panel {
++	padding: 8px;
++	margin: 0px 0px 8px 0px;
++	background-color: #181818;
++	border: 1px solid #4B5960;
++}
++.eq-bands {
++	display: grid;
++	grid-template-columns: repeat(10, minmax(0, 1fr));
++	gap: 5px;
++}
++.eq-band {
++	min-width: 0px;
++	padding: 6px 2px 5px 2px;
++	background-color: #202020;
++	border: 1px solid #303A40;
++	text-align: center;
++}
++.eq-band:focus-within {
++	border-color: #829EAE;
++}
++.eq-frequency {
++	display: block;
++	color: #9E9E9E;
++	font-family: "Rajdhani", "Aldrich", Tahoma, sans-serif;
++	font-size: 88%;
++	font-weight: 700;
++	letter-spacing: .3px;
++	white-space: nowrap;
++}
++.eq-slider {
++	display: block;
++	width: 18px;
++	height: 110px;
++	padding: 0px;
++	margin: 6px auto;
++	accent-color: #829EAE;
++	writing-mode: vertical-lr;
++	direction: rtl;
++}
++.eq-band-value {
++	display: block;
++	min-height: 14px;
++	color: #829EAE;
++	font-family: "Rajdhani", "Courier New", monospace;
++	font-size: 82%;
++	font-weight: 700;
++	white-space: nowrap;
++}
++.eq-lower-controls {
++	display: flex;
++	flex-wrap: wrap;
++	align-items: center;
++	gap: 14px 22px;
++	padding-top: 9px;
++}
++.eq-preamp-control {
++	display: flex;
++	align-items: center;
++	gap: 8px;
++	min-width: 250px;
++	flex: 1 1 250px;
++}
++.eq-control-label,
++.eq-control-value,
++.eq-check-label,
++.eq-status {
++	color: #9E9E9E;
++	font-family: "Rajdhani", "Aldrich", Tahoma, sans-serif;
++	font-weight: 700;
++	letter-spacing: .7px;
++}
++.eq-preamp-slider {
++	min-width: 80px;
++	flex: 1 1 auto;
++	accent-color: #829EAE;
++}
++.eq-control-value {
++	min-width: 52px;
++	color: #829EAE;
++	text-align: right;
++}
++.eq-switches {
++	display: flex;
++	flex-wrap: wrap;
++	align-items: center;
++	gap: 7px 14px;
++}
++.eq-check-label {
++	display: inline-flex;
++	align-items: center;
++	gap: 5px;
++	font-size: 88%;
++	white-space: nowrap;
++}
++.eq-check { accent-color: #829EAE; }
++.eq-status {
++	padding-top: 3px;
++	font-size: 90%;
++	text-transform: uppercase;
++}
++
++/* Repository archive controls and icon-led metadata; no pipe-separated link runs. */
++.archive-filter-icon,
++.archive-source-icon,
++.archive-meta-provider-icon {
++	width: 15px;
++	height: 15px;
++	object-fit: contain;
++	vertical-align: middle;
++}
++.archive-filter-icon { margin: 0px 5px 2px 0px; }
++.archive-filter[aria-current="true"] {
++	background-position: 0px -28px;
++	color: #C0C0C0;
++}
++.source-profile-links a {
++	display: inline-block;
++	margin: 0px 18px 6px 0px;
++	white-space: nowrap;
++}
++.archive-source-icon { margin: 0px 5px 2px 0px; }
++.repository-actions {
++	padding: 0px 0px 5px 0px;
++	line-height: 1.9;
++}
++.repository-actions .archive-action,
++.repository-actions .archive-source-link {
++	display: inline-block;
++	margin: 0px 13px 3px 0px;
++	white-space: nowrap;
++}
++.archive-action-icon {
++	display: inline-block;
++	min-width: 17px;
++	color: #9E9E9E;
++	font-family: "Michroma", "Aldrich", sans-serif;
++	font-weight: bold;
++	text-align: center;
++	text-decoration: none;
++}
++.repository-meta { line-height: 1.8; }
++.archive-meta-provider {
++	display: inline-flex;
++	align-items: center;
++	gap: 4px;
++	margin: 0px 13px 4px 0px;
++	color: #AEB8BD;
++	font-weight: 700;
++	white-space: nowrap;
++}
++.archive-meta-item {
++	display: inline-block;
++	margin: 0px 13px 4px 0px;
++	white-space: nowrap;
++}
++.archive-meta-icon {
++	padding-right: 4px;
++	color: #829EAE;
++	font-family: "Michroma", "Rajdhani", sans-serif;
++}
++.archive-topic-heading {
++	margin-right: 8px;
++	color: #9E9E9E;
++	font-weight: 700;
++}
++.archive-topic {
++	display: inline-block;
++	margin: 0px 8px 3px 0px;
++	padding: 1px 5px;
++	background-color: #202020;
++	border: 1px solid #303A40;
++	color: #829EAE;
++}
++.repository-card[hidden] { display: none; }
++#public-chat .VTitle { font-family: "Bank Gothic", "Michroma", "Aldrich", Tahoma, sans-serif; }
++.eq-slider,
++.eq-preamp-slider,
++.eq-check { cursor: url('../assets/cursors/hand.cur'), pointer; }
++.music-audio {
++	display: block;
++	width: 100%;
++	max-width: 500px;
++	margin: 6px 0px 3px 0px;
++	accent-color: #829EAE;
++}
+diff --git a/forum.html b/forum.html
+index 4746dc5..fdc3682 100644
+--- a/forum.html
++++ b/forum.html
+@@ -7,6 +7,7 @@
+     <title>Payson Mercury Forum</title>
+     <link rel="stylesheet" type="text/css" href="css/mercury.css" />
+     <link href="https://fonts.googleapis.com/css?family=Aldrich" rel="stylesheet" type="text/css" />
++    <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" type="text/css" />
+     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+   </head>
+   <body id="top" class="forum-page">
+@@ -33,6 +34,8 @@
+ 
+           <div class="Vnavbox"><div class="Vnavtop"><div class="VnavTitle">SECTIONS</div></div><div class="Vnavmid"><div class="sb-butns"><ul id="forum-categories"><li><span class="forum-loading">Loading sections...</span></li></ul></div></div><div class="Vnavbtm"></div></div>
+ 
++          <div class="Vnavbox"><div class="Vnavtop"><div class="VnavTitle">PORTFOLIO</div></div><div class="Vnavmid"><div class="sb-butns"><ul><li><a class="sb-butn" href="projects.html">Projects</a></li><li><a class="sb-butn" href="music.html">Music</a></li><li><a class="sb-butn" href="business.html">Business</a></li></ul></div></div><div class="Vnavbtm"></div></div>
++
+           <div class="Vbox"><div class="Vtop"><div class="VTitle">ATTACHMENTS</div></div><div class="Vmid"><div class="VInfo forum-side-info">
+             <p>Signed-in members can attach files up to 95 MiB.</p>
+             <p>Files are hosted by Catbox. This site stores the returned public URL.</p>
+@@ -47,7 +50,7 @@
+ 
+       <div id="mercury-footer"><div id="ft-level-1">
+         <div class="footer-roller footer-roller-left"><div class="footer-roller-viewport"><p class="footer-roller-line">Payson Mercury community forum.</p></div></div>
+-        <div class="ft-butns-box"><div class="ft-links"><ul><li><a class="ft-social" href="https://gitlab.com/paysonism" target="_blank" rel="noopener" title="GitLab"><img src="theme/gitlab.svg" alt="GitLab" /></a></li><li><a class="ft-butn-2" href="#top" title="Page Top"></a></li><li><a class="ft-social" href="https://github.com/paysonism" target="_blank" rel="noopener" title="GitHub"><img src="theme/github.svg" alt="GitHub" /></a></li></ul></div></div>
++        <div class="ft-butns-box"><div class="ft-links"><ul><li><a class="ft-social" href="https://gitlab.com/paysonism" target="_blank" rel="noopener" title="GitLab"><img src="theme/gitlab.svg" alt="GitLab" /></a></li><li><a class="ft-butn-2" href="#top" title="Page Top"></a></li><li><a class="ft-social" href="https://github.com/430L" target="_blank" rel="noopener" title="GitHub"><img src="theme/github.svg" alt="GitHub" /></a></li></ul></div></div>
+         <div class="footer-roller footer-roller-right"><div class="footer-roller-viewport"><p class="footer-roller-line">Topics, replies, and project discussion.</p></div></div>
+       </div><div id="ft-level-2"><div class="ft-butns-box2"><div class="ft-links2"><ul>
+         <li><a class="ft-butn2-1" href="index.html">Home</a></li><li><a class="ft-butn2-1" href="#forum-index" data-forum-action="index">Index</a></li><li><a class="ft-butn2-1" href="#new-topic" data-forum-action="compose">New Topic</a></li><li><a class="ft-butn2-1" href="#account" data-forum-action="account">Account</a></li><li><a class="ft-butn2-1" href="#top">Top</a></li>
+diff --git a/index.html b/index.html
+index c0c5745..9d1706e 100644
+--- a/index.html
++++ b/index.html
+@@ -31,6 +31,7 @@
+     <!-- CSS FILES -->
+     <link rel="stylesheet" type="text/css" href="css/mercury.css" />
+     <link href="https://fonts.googleapis.com/css?family=Aldrich" rel="stylesheet" type="text/css" />
++    <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" type="text/css" />
+   </head>
+   <body id="top">
+     <div id="mercury-wrapper">
+@@ -49,9 +50,9 @@
+         <div id="banner-nav">
+           <ul>
+             <li><a href="#about" data-arcade-id="nav-about" data-arcade-kind="route" data-arcade-value="25">ABOUT</a></li>
+-            <li><a href="#projects" data-arcade-id="nav-projects" data-arcade-kind="route" data-arcade-value="25">PROJECTS</a></li>
+-            <li><a href="#archive" data-arcade-id="nav-archive" data-arcade-kind="route" data-arcade-value="25">ARCHIVE</a></li>
+-            <li><a href="#stack" data-arcade-id="nav-stack" data-arcade-kind="route" data-arcade-value="25">STACK</a></li>
++            <li><a href="projects.html" data-arcade-id="nav-projects" data-arcade-kind="route" data-arcade-value="25">PROJECTS</a></li>
++            <li><a href="music.html" data-arcade-id="nav-music" data-arcade-kind="route" data-arcade-value="25">MUSIC</a></li>
++            <li><a href="business.html" data-arcade-id="nav-business" data-arcade-kind="route" data-arcade-value="25">BUSINESS</a></li>
+             <li><a href="#contact" data-arcade-id="nav-contact" data-arcade-kind="route" data-arcade-value="25">CONTACT</a></li>
+           </ul>
+         </div>
+@@ -113,6 +114,9 @@
+                 <ul>
+                   <li><a class="sb-butn" href="#public-chat">Open Chatroom</a></li>
+                   <li><a class="sb-butn" href="forum.html">Visit Forum</a></li>
++                  <li><a class="sb-butn" href="#projects">Featured Work</a></li>
++                  <li><a class="sb-butn" href="#archive">Archive Highlights</a></li>
++                  <li><a class="sb-butn" href="#stack">Technical Stack</a></li>
+                 </ul>
+               </div>
+             </div>
+@@ -150,7 +154,7 @@
+                 <p>
+                   You can view all of my work across my
+                   <a
+-                    href="https://github.com/paysonism"
++                    href="https://github.com/430L"
+                     target="_blank"
+                     rel="noopener"
+                     >GitHub</a
+@@ -171,7 +175,7 @@
+ 
+           <div class="Cbox" id="projects">
+             <div class="Ctop">
+-              <div class="CTitle">MY MOST KNOWN PROJECTS</div>
++              <div class="CTitle">FEATURED PROJECTS</div>
+             </div>
+             <div class="Cmid">
+               <div class="CInfo">
+@@ -211,34 +215,24 @@
+                   </div>
+                 </div>
+                 <div class="project-compact">
+-                  <p class="project-kicker">UNFLAGGED VULNERABLE DRIVER</p>
++                  <p class="project-kicker">GPU-ACCELERATED CREATION TOOL</p>
+                   <p class="project-title">
+-                    <a
+-                      href="https://gitlab.com/paysonism/cormem-vulnerable-driver"
+-                      target="_blank"
+-                      rel="noopener"
+-                      >CorMem Vulnerable Driver</a
+-                    >
++                    <a href="https://github.com/430L/forza-painter-fh6" target="_blank" rel="noopener">Forza Painter FH6</a>
+                   </p>
+                   <p class="project-description">
+-                    Includes the IOCTL mapping, memory primitives, address
+-                    translation notes, and a Visual Studio user-mode example.
++                    Vinyl painter import tool with GPU-accelerated generation and import workflows. A strong example of a practical, graphics-focused application.
+                   </p>
++                  <p class="project-meta">GITHUB / 430L · GPU WORKFLOW</p>
+                 </div>
+                 <div class="project-compact">
+-                  <p class="project-kicker">UNPACKER</p>
++                  <p class="project-kicker">C++ DEVELOPER TOOLKIT</p>
+                   <p class="project-title">
+-                    <a
+-                      href="https://gitlab.com/paysonism/vmprotectunpacker"
+-                      target="_blank"
+-                      rel="noopener"
+-                      >VMProtect Unpacker</a
+-                    >
++                    <a href="https://github.com/430L/haxsdk" target="_blank" rel="noopener">HaxSDK</a>
+                   </p>
+                   <p class="project-description">
+-                    C++ debugger that unpacks VMProtect-protected binaries and
+-                    dumps in-memory code using Capstone for disassembly.
++                    Lightweight C++ toolkit for building game modifications and internal developer tools.
+                   </p>
++                  <p class="project-meta">GITHUB / 430L · C++</p>
+                 </div>
+                 <p>
+                   <a
+@@ -249,8 +243,7 @@
+                   >
+                 </p>
+                 <p>
+-                  A collection of hypervisor docs. I might update this with some
+-                  new stuff soon as I continue learning about this.
++                  A focused reference collection on Intel VT-x hypervisor concepts and implementation.
+                 </p>
+               </div>
+             </div>
+@@ -259,7 +252,7 @@
+ 
+           <div class="Cbox">
+             <div class="Ctop">
+-              <div class="CTitle">SELECTED TOOLS &amp; APPLICATIONS</div>
++              <div class="CTitle">SOFTWARE &amp; BROWSER PROJECTS</div>
+             </div>
+             <div class="Cmid">
+               <div class="CInfo">
+@@ -333,30 +326,16 @@
+                   </div>
+                 </div>
+                 <div class="project-compact">
+-                  <p class="project-kicker">
+-                    Visual Studio / security utility
+-                  </p>
++                  <p class="project-kicker">BROWSER EXTENSION</p>
+                   <p class="project-title">
+-                    <a
+-                      href="https://gitlab.com/paysonism/VcxProj-Trojan-Remover"
+-                      target="_blank"
+-                      rel="noopener"
+-                      >VCXPROJ TROJAN REMOVER</a
+-                    >
++                    <a href="https://github.com/430L/UnknownCheats-Plus" target="_blank" rel="noopener">UnknownCheats Plus</a>
+                   </p>
+                   <p class="project-description">
+-                    Removes malicious project entries, repairs damaged VCXPROJ
+-                    files, and cleans generated backups.
++                    Browser extension for the UnKnoWnCheaTs community.
+                   </p>
++                  <p class="project-meta">GITHUB / 430L · BROWSER TOOL</p>
+                 </div>
+-                <p>
+-                  <a
+-                    href="https://gitlab.com/paysonism/Windows-11-Tools"
+-                    target="_blank"
+-                    rel="noopener"
+-                    >Open the Windows 11 tools collection</a
+-                  >
+-                </p>
++                <p><a href="projects.html">Browse the full, filterable source archive</a></p>
+               </div>
+             </div>
+             <div class="Cbtm"></div>
+@@ -364,66 +343,46 @@
+ 
+           <div class="Cbox" id="archive">
+             <div class="Ctop">
+-              <div class="CTitle">GITHUB ARCHIVE HIGHLIGHTS</div>
++              <div class="CTitle">GITHUB SHOWCASE / 430L</div>
+             </div>
+             <div class="Cmid">
+               <div class="CInfo">
+                 <p>
+                   <strong>[01]</strong>
+                   <a
+-                    href="https://github.com/paysonism/v2-payson-ioctl-cheat-driver"
++                    href="https://github.com/430L/forza-painter-fh6"
+                     target="_blank"
+                     rel="noopener"
+-                    >V2 PAYSON IOCTL DRIVER</a
++                    >FORZA PAINTER FH6</a
+                   >
+-                  — Windows driver and user-mode communication archive.
++                  — GPU-accelerated vinyl painter import workflow for Forza Horizon 6.
+                 </p>
+                 <p>
+                   <strong>[02]</strong>
+                   <a
+-                    href="https://github.com/paysonism/Fortnite-Offsets"
++                    href="https://github.com/430L/haxsdk"
+                     target="_blank"
+                     rel="noopener"
+-                    >FORTNITE OFFSETS</a
++                    >HAXSDK</a
+                   >
+-                  — Referenced Unreal Engine offsets archive.
++                  — Lightweight C++ toolkit for developer tools and game-mod projects.
+                 </p>
+                 <p>
+                   <strong>[03]</strong>
+                   <a
+-                    href="https://github.com/paysonism/saturndrv"
++                    href="https://github.com/430L/UnknownCheats-Plus"
+                     target="_blank"
+                     rel="noopener"
+-                    >SATURN DRIVER</a
++                    >UNKNOWNCHEATS PLUS</a
+                   >
+-                  — Earlier kernel-mode experiment with C/C++ communication
+-                  example.
++                  — Browser extension for the UnKnoWnCheaTs community.
+                 </p>
+                 <p>
+                   <strong>[04]</strong>
+-                  <a
+-                    href="https://github.com/paysonism/FN-TOOLZ"
+-                    target="_blank"
+-                    rel="noopener"
+-                    >FN-TOOLZ</a
+-                  >
+-                  /
+-                  <a
+-                    href="https://github.com/paysonism/FLB"
+-                    target="_blank"
+-                    rel="noopener"
+-                    >FLB</a
+-                  >
+-                  — Earlier utility and Python automation work.
+-                </p>
+-                <p>
+-                  <a
+-                    href="https://gitlab.com/paysonism?tab=projects"
+-                    target="_blank"
+-                    rel="noopener"
+-                    >Browse the complete project archive on GitLab</a
+-                  >.
++                  <a href="https://github.com/430L/REpsych" target="_blank" rel="noopener">REpsych</a>
++                  — CTF image-viewing helper for IDA-style reverse-engineering layouts.
+                 </p>
++                <p><a href="projects.html">Browse and filter every public repository</a> across GitLab and GitHub.</p>
+               </div>
+             </div>
+             <div class="Cbtm"></div>
+@@ -486,7 +445,7 @@
+                   >. For the original public archive and community history,
+                   visit
+                   <a
+-                    href="https://github.com/paysonism"
++                    href="https://github.com/430L"
+                     target="_blank"
+                     rel="noopener"
+                     >GitHub</a
+@@ -504,10 +463,10 @@
+                     >gitlab.com/paysonism</a
+                   ><br /><strong>GitHub:</strong>
+                   <a
+-                    href="https://github.com/paysonism"
++                    href="https://github.com/430L"
+                     target="_blank"
+                     rel="noopener"
+-                    >github.com/paysonism</a
++                    >github.com/430L</a
+                   >
+                 </p>
+                 <p>
+@@ -555,7 +514,7 @@
+                 <li>
+                   <a
+                     class="ft-social ft-github"
+-                    href="https://github.com/paysonism"
++                    href="https://github.com/430L"
+                     target="_blank"
+                     rel="noopener"
+                     title="GitHub"
+@@ -582,17 +541,17 @@
+                   <a class="ft-butn2-1" href="#about" target="_self">About</a>
+                 </li>
+                 <li>
+-                  <a class="ft-butn2-1" href="#projects" target="_self"
++                  <a class="ft-butn2-1" href="projects.html" target="_self"
+                     >Projects</a
+                   >
+                 </li>
+                 <li>
+-                  <a class="ft-butn2-1" href="#archive" target="_self"
+-                    >Archive</a
++                  <a class="ft-butn2-1" href="music.html" target="_self"
++                    >Music</a
+                   >
+                 </li>
+                 <li>
+-                  <a class="ft-butn2-1" href="#stack" target="_self">Stack</a>
++                  <a class="ft-butn2-1" href="business.html" target="_self">Business</a>
+                 </li>
+                 <li>
+                   <a class="ft-butn2-1" href="#contact" target="_self"
+diff --git a/js/business-data.js b/js/business-data.js
+new file mode 100644
+index 0000000..edb73b6
+--- /dev/null
++++ b/js/business-data.js
+@@ -0,0 +1,37 @@
++// SAMPLE CONTENT — fictional examples only. Replace each marked field with verified company details.
++// Each company's timeline is separate; add, remove, or reorder milestone records as needed.
++export const companies = [
++  {
++    id: "northstar-sample",
++    name: "Northstar Systems (SAMPLE)",
++    startYear: "2021",
++    endYear: "2024",
++    description: "FICTIONAL SAMPLE PROFILE — replace with a concise overview of the real company, its work, and your role.",
++    logo: "assets/business/northstar-sample.svg",
++    website: "https://example.com/northstar-sample",
++    websiteLabel: "Sample company link — replace",
++    score: 4.2,
++    timeline: [
++      { date: "SAMPLE // 2021", title: "Company concept drafted", description: "Placeholder achievement. Replace with a real founding, launch, or first project milestone." },
++      { date: "SAMPLE // 2022", title: "First release milestone", description: "Placeholder achievement. Add a product release, customer result, or measurable outcome." },
++      { date: "SAMPLE // 2023", title: "Operations expanded", description: "Placeholder achievement. Add a verified expansion, partnership, or team milestone." },
++      { date: "SAMPLE // 2024", title: "Project handoff", description: "Placeholder achievement. Replace with the actual end date or mark the company as current." }
++    ]
++  },
++  {
++    id: "relay-sample",
++    name: "Relay Creative Labs (SAMPLE)",
++    startYear: "2023",
++    current: true,
++    description: "FICTIONAL SAMPLE PROFILE — this second record demonstrates a current company with its own independent achievements timeline.",
++    logo: "assets/business/relay-sample.svg",
++    website: "https://example.com/relay-sample",
++    websiteLabel: "Sample company link — replace",
++    score: 3.7,
++    timeline: [
++      { date: "SAMPLE // 2023", title: "Studio opened", description: "Placeholder achievement. Replace with the true start, launch, or role milestone." },
++      { date: "SAMPLE // 2024", title: "First client project", description: "Placeholder achievement. Add a real project, customer, or delivery milestone." },
++      { date: "SAMPLE // CURRENT", title: "In progress", description: "Example current milestone. Replace with an active goal or remove this entry." }
++    ]
++  }
++];
+diff --git a/js/business.js b/js/business.js
+new file mode 100644
+index 0000000..4bbed26
+--- /dev/null
++++ b/js/business.js
+@@ -0,0 +1,108 @@
++import { companies } from "./business-data.js";
++
++const entries = Array.isArray(companies) ? companies : [];
++
++function add(parent, tag, className, text) {
++  const element = document.createElement(tag);
++  if (className) element.className = className;
++  if (text !== undefined && text !== null) element.textContent = text;
++  parent.appendChild(element);
++  return element;
++}
++
++function safeId(company, index) {
++  const source = String(company.id || company.name || `company-${index + 1}`)
++    .toLowerCase()
++    .replace(/[^a-z0-9]+/g, "-")
++    .replace(/^-|-$/g, "");
++  return `company-${source || index + 1}`;
++}
++
++function yearRange(company) {
++  const start = company.startYear || "YEAR TBD";
++  const end = company.endYear || (company.current ? "PRESENT" : "");
++  return end ? `${start} – ${end}` : String(start);
++}
++
++function renderSidebar() {
++  const timeline = document.getElementById("business-timeline");
++  if (!timeline) return;
++  timeline.replaceChildren();
++  if (!entries.length) {
++    add(timeline, "p", "", "Company history will appear here when added.");
++    return;
++  }
++  const list = add(timeline, "ul", "");
++  entries.forEach((company, index) => {
++    const item = add(list, "li", "");
++    const anchor = add(item, "a", "sb-butn", `${yearRange(company)} | ${company.name || "Company"}`);
++    anchor.href = `#${safeId(company, index)}`;
++  });
++}
++
++function renderCompanies() {
++  const container = document.getElementById("business-companies");
++  if (!container) return;
++  container.replaceChildren();
++  if (!entries.length) {
++    add(container, "p", "", "Company profiles are ready to be added. Add a company record to js/business-data.js; its overview and individual achievements timeline will be generated here.");
++    return;
++  }
++
++  entries.forEach((company, index) => {
++    const panel = add(container, "section", "Cbox");
++    panel.id = safeId(company, index);
++    const top = add(panel, "div", "Ctop");
++    add(top, "div", "CTitle", company.name || "Company overview");
++    const mid = add(panel, "div", "Cmid");
++    const info = add(mid, "div", "CInfo");
++
++    if (company.logo || company.description || company.website) {
++      const overview = add(info, "div", "project-feature");
++      if (company.logo) {
++        const image = add(overview, "img", "project-thumb project-thumb-logo");
++        image.src = company.logo;
++        image.alt = `${company.name || "Company"} logo`;
++        image.loading = "lazy";
++      }
++      const copy = add(overview, "div", "project-copy");
++      add(copy, "p", "project-kicker", yearRange(company));
++      if (company.description) add(copy, "p", "project-description", company.description);
++      if (company.website) {
++        const website = add(copy, "p", "project-description");
++        const anchor = add(website, "a", "", company.websiteLabel || "Company website");
++        anchor.href = company.website;
++        if (/^https?:/i.test(company.website)) {
++          anchor.target = "_blank";
++          anchor.rel = "noopener noreferrer";
++        }
++      }
++    } else {
++      add(info, "p", "", company.description || "Company description has not been added yet.");
++      add(info, "p", "project-meta", yearRange(company));
++    }
++
++    const score = company.score === null || company.score === undefined || company.score === "" ? Number.NaN : Number(company.score);
++    const scoreText = Number.isFinite(score) && score >= 0 && score <= 5
++      ? `${score} / 5`
++      : "NOT RATED";
++    add(info, "p", "project-meta", `SUCCESS: ${scoreText}`);
++
++    const milestones = Array.isArray(company.timeline) ? company.timeline : [];
++    const heading = add(info, "p", "project-kicker", "COMPANY TIMELINE & ACHIEVEMENTS");
++    heading.id = `${panel.id}-timeline`;
++    if (!milestones.length) {
++      add(info, "p", "", "No milestones have been added for this company yet.");
++      return;
++    }
++    milestones.forEach((milestone) => {
++      const achievement = add(info, "div", "project-compact");
++      add(achievement, "p", "project-kicker", milestone.date || "DATE TBD");
++      add(achievement, "p", "project-title", milestone.title || "Achievement");
++      if (milestone.description) add(achievement, "p", "project-description", milestone.description);
++    });
++  });
++}
++
++renderSidebar();
++renderCompanies();
+diff --git a/js/music-data.js b/js/music-data.js
+new file mode 100644
+index 0000000..c9fbd41
+--- /dev/null
++++ b/js/music-data.js
+@@ -0,0 +1,46 @@
++// SAMPLE CONTENT — replace these records with your own releases and links.
++// Keep a stable, URL-safe `id`. Audio can be a local file under assets/music/ or a public URL.
++export const musicCatalog = {
++  tracks: [
++    {
++      id: "neon-run-sample",
++      title: "Neon Run (TEST SAMPLE)",
++      artist: "Payson (placeholder credit)",
++      project: "Portfolio EQ test",
++      genre: "Synthwave / generated demo",
++      year: "SAMPLE",
++      duration: "0:10",
++      date: "SAMPLE 02",
++      audio: "assets/music/synthwave-test-demo.mp3",
++      featured: true,
++      description: "SAMPLE AUDIO ONLY — an original generated synth loop for checking the player and graphic EQ. Replace the title, credits, description, and MP3 with your own production."
++    },
++    {
++      id: "blue-hour-sample",
++      title: "Blue Hour (TEST SAMPLE)",
++      artist: "Payson (placeholder credit)",
++      project: "Portfolio EQ test",
++      genre: "Ambient / generated demo",
++      year: "SAMPLE",
++      duration: "0:13",
++      date: "SAMPLE 01",
++      audio: "assets/music/ambient-test-demo.mp3",
++      featured: false,
++      description: "SAMPLE AUDIO ONLY — a soft generated pad-and-pluck loop for testing long notes and subtle EQ changes. Replace this sample record and its audio file."
++    }
++  ],
++  productionSetup: [
++    {
++      title: "Placeholder home studio",
++      category: "SAMPLE PHOTO — REPLACE WITH YOUR SETUP",
++      image: "assets/music/studio-setup-sample.jpg",
++      alt: "Illustrative early-2000s-style music workstation placeholder image",
++      description: "This is generated placeholder art, not a photo of your actual setup. Replace the image path and caption with your own equipment photos."
++    }
++  ],
++  platforms: [
++    { name: "SoundCloud — sample link", url: "https://soundcloud.com/" },
++    { name: "Bandcamp — sample link", url: "https://bandcamp.com/" },
++    { name: "YouTube Music — sample link", url: "https://music.youtube.com/" }
++  ]
++};
+diff --git a/js/music.js b/js/music.js
+new file mode 100644
+index 0000000..ea49a3a
+--- /dev/null
++++ b/js/music.js
+@@ -0,0 +1,441 @@
++import { musicCatalog } from "./music-data.js";
++
++const tracks = Array.isArray(musicCatalog.tracks) ? musicCatalog.tracks : [];
++const byId = new Map(tracks.map((track) => [String(track.id), track]));
++const EQ_STORAGE_KEY = "paysonism-mercury-graphic-eq-v1";
++const EQ_BANDS = [
++  { hz: 31, label: "31" }, { hz: 63, label: "63" }, { hz: 125, label: "125" },
++  { hz: 250, label: "250" }, { hz: 500, label: "500" }, { hz: 1000, label: "1k" },
++  { hz: 2000, label: "2k" }, { hz: 4000, label: "4k" }, { hz: 8000, label: "8k" },
++  { hz: 16000, label: "16k" }
++];
++const EQ_PRESETS = {
++  Flat: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
++  Warm: [2, 2, 1.5, 1, 0, -0.5, -1, -1, -1, -1],
++  Vocal: [-2, -1, 0, 1, 1.5, 2, 1.5, 0.5, -0.5, -1],
++  Air: [-2, -1, -0.5, 0, 0, 0.5, 1, 1.5, 2, 2]
++};
++const EQ_DEFAULTS = { gains: [...EQ_PRESETS.Flat], preamp: 0, autoHeadroom: true, bypass: false, preset: "Flat" };
++const clamp = (number, min, max) => Math.min(max, Math.max(min, number));
++const dbToGain = (db) => 10 ** (db / 20);
++let eqState = readEqState();
++let audioContext = null;
++let activeAudio = null;
++const audioGraphs = new WeakMap();
++const graphRegistry = new Set();
++const esc = (value) => String(value ?? "");
++
++function add(parent, tag, className, text) {
++  const element = document.createElement(tag);
++  if (className) element.className = className;
++  if (text !== undefined && text !== null) element.textContent = text;
++  parent.appendChild(element);
++  return element;
++}
++
++function link(parent, href, text, className = "") {
++  if (!href) return null;
++  const anchor = add(parent, "a", className, text);
++  anchor.href = href;
++  if (/^https?:/i.test(href)) {
++    anchor.target = "_blank";
++    anchor.rel = "noopener noreferrer";
++  }
++  return anchor;
++}
++
++function saveEqState() {
++  try { window.localStorage.setItem(EQ_STORAGE_KEY, JSON.stringify(eqState)); } catch { /* storage is optional */ }
++}
++
++function readEqState() {
++  try {
++    const saved = JSON.parse(window.localStorage.getItem(EQ_STORAGE_KEY) || "null");
++    if (!saved || !Array.isArray(saved.gains) || saved.gains.length !== EQ_BANDS.length) return { ...EQ_DEFAULTS, gains: [...EQ_DEFAULTS.gains] };
++    return {
++      gains: saved.gains.map((gain) => clamp(Number(gain) || 0, -12, 12)),
++      preamp: clamp(Number(saved.preamp) || 0, -18, 6),
++      autoHeadroom: saved.autoHeadroom !== false,
++      bypass: Boolean(saved.bypass),
++      preset: EQ_PRESETS[saved.preset] ? saved.preset : "Custom"
++    };
++  } catch {
++    return { ...EQ_DEFAULTS, gains: [...EQ_DEFAULTS.gains] };
++  }
++}
++
++function setAudio(player, track) {
++  if (!track?.audio) return false;
++  const audio = add(player, "audio", "music-audio");
++  audio.controls = true;
++  audio.preload = "none";
++  if (/^https?:/i.test(track.audio)) audio.crossOrigin = "anonymous";
++  audio.src = track.audio;
++  audio.setAttribute("aria-label", `Play ${esc(track.title)}`);
++  registerPlayer(audio);
++  return true;
++}
++
++function addTrack(parent, track, { playerPage = false } = {}) {
++  const item = add(parent, "div", "project-compact");
++  const detailUrl = `music-player.html?track=${encodeURIComponent(track.id)}`;
++  const metadata = [track.artist, track.project, track.genre, track.year, track.duration]
++    .filter(Boolean)
++    .join(" / ");
++  add(item, "p", "project-kicker", metadata || "MUSIC PROJECT");
++  const title = add(item, "p", "project-title");
++  link(title, detailUrl, track.title || "Untitled track");
++  if (track.description) add(item, "p", "project-description", track.description);
++
++  if (playerPage) {
++    if (!setAudio(item, track)) add(item, "p", "project-description", "Audio file not added yet.");
++  } else if (track.audio) {
++    setAudio(item, track);
++  } else {
++    add(item, "p", "project-meta", "AUDIO SOURCE NOT ADDED");
++    link(item, detailUrl, "OPEN TRACK DETAILS");
++  }
++  if (track.platformUrl) link(item, track.platformUrl, "LISTEN ON PLATFORM");
++  return item;
++}
++
++function renderRecentTracks() {
++  const container = document.getElementById("music-recent");
++  if (!container) return;
++  const recent = [...tracks].sort((a, b) => String(b.date || b.year || "").localeCompare(String(a.date || a.year || ""))).slice(0, 8);
++  container.replaceChildren();
++  const list = add(container, "ul", "");
++  if (!recent.length) {
++    add(add(list, "li", ""), "span", "", "No music projects published yet.");
++    return;
++  }
++  recent.forEach((track) => {
++    const item = add(list, "li", "");
++    link(item, `music-player.html?track=${encodeURIComponent(track.id)}`, track.title || "Untitled track", "sb-butn");
++  });
++}
++
++function renderTrackList(container, selection, emptyMessage, playerPage = false) {
++  if (!container) return;
++  container.replaceChildren();
++  if (!selection.length) {
++    add(container, "p", "", emptyMessage);
++    return;
++  }
++  selection.forEach((track) => addTrack(container, track, { playerPage }));
++}
++
++function renderSetup() {
++  const container = document.getElementById("music-setup");
++  if (!container) return;
++  const setup = Array.isArray(musicCatalog.productionSetup) ? musicCatalog.productionSetup : [];
++  container.replaceChildren();
++  if (!setup.length) {
++    add(container, "p", "", "Production setup photos have not been added yet.");
++    return;
++  }
++  setup.forEach((photo) => {
++    const item = add(container, "div", "project-feature");
++    if (photo.image) {
++      const imageLink = add(item, "a", "");
++      imageLink.href = photo.image;
++      const image = add(imageLink, "img", "project-thumb");
++      image.src = photo.image;
++      image.alt = photo.alt || photo.title || "Production setup photo";
++      image.loading = "lazy";
++    }
++    const copy = add(item, "div", "project-copy");
++    add(copy, "p", "project-kicker", photo.category || "PRODUCTION SETUP");
++    add(copy, "p", "project-title", photo.title || "Studio setup");
++    if (photo.description) add(copy, "p", "project-description", photo.description);
++  });
++}
++
++function renderPlatforms() {
++  const container = document.getElementById("music-platforms");
++  if (!container) return;
++  const platforms = Array.isArray(musicCatalog.platforms) ? musicCatalog.platforms : [];
++  container.replaceChildren();
++  if (!platforms.length) {
++    const item = add(container, "li", "");
++    add(item, "span", "", "Links not added yet");
++    return;
++  }
++  platforms.forEach((platform) => {
++    const item = add(container, "li", "");
++    const anchor = link(item, platform.url, platform.name || platform.url);
++    if (anchor) anchor.className = "sb-butn";
++  });
++}
++
++function renderPlayerPage() {
++  const target = document.getElementById("music-player");
++  if (!target) return;
++  target.replaceChildren();
++  const id = new URLSearchParams(window.location.search).get("track");
++  const track = id ? byId.get(id) : null;
++  if (!track) {
++    add(target, "p", "", tracks.length ? "That track could not be found in the music catalogue." : "No track has been published yet. Add a track to js/music-data.js to enable its player page.");
++    return;
++  }
++  addTrack(target, track, { playerPage: true });
++}
++
++function readAudioContext() {
++  const Context = window.AudioContext || window.webkitAudioContext;
++  if (!Context) throw new Error("This browser does not support Web Audio; the native player will still work without EQ.");
++  if (!audioContext) audioContext = new Context();
++  return audioContext;
++}
++
++function createAudioGraph(audio) {
++  const context = readAudioContext();
++  const source = context.createMediaElementSource(audio);
++  const preamp = context.createGain();
++  const filters = EQ_BANDS.map(({ hz }) => {
++    const filter = context.createBiquadFilter();
++    filter.type = "peaking";
++    filter.frequency.value = Math.min(hz, context.sampleRate * 0.45);
++    filter.Q.value = 1.414;
++    return filter;
++  });
++  const safetyCompressor = context.createDynamicsCompressor();
++  safetyCompressor.threshold.value = -1;
++  safetyCompressor.knee.value = 2;
++  safetyCompressor.ratio.value = 20;
++  safetyCompressor.attack.value = 0.003;
++  safetyCompressor.release.value = 0.16;
++  const output = context.createGain();
++  output.gain.value = dbToGain(-0.5);
++
++  source.connect(preamp);
++  let previous = preamp;
++  filters.forEach((filter) => { previous.connect(filter); previous = filter; });
++  previous.connect(safetyCompressor);
++  safetyCompressor.connect(output);
++  output.connect(context.destination);
++
++  const graph = { audio, context, filters, preamp, safetyCompressor, output };
++  audioGraphs.set(audio, graph);
++  graphRegistry.add(graph);
++  return graph;
++}
++
++function graphPeakBoost(graph) {
++  if (eqState.bypass || !eqState.autoHeadroom) return 0;
++  const sampleRate = graph.context.sampleRate;
++  const maxFrequency = Math.min(20000, sampleRate * 0.49);
++  let maximumDb = 0;
++  // Match the RBJ peaking-EQ transfer function used by native BiquadFilterNodes.
++  // Sweeping the combined response makes headroom track adjacent-band boosts rather than a preset guess.
++  for (let sample = 0; sample < 512; sample += 1) {
++    const frequency = 20 * (maxFrequency / 20) ** (sample / 511);
++    const omega = 2 * Math.PI * frequency / sampleRate;
++    const cosine = Math.cos(omega), sine = Math.sin(omega);
++    const cosine2 = Math.cos(2 * omega), sine2 = Math.sin(2 * omega);
++    let responseDb = 0;
++    EQ_BANDS.forEach(({ hz }, index) => {
++      const gain = eqState.gains[index];
++      if (!gain) return;
++      const center = Math.min(hz, sampleRate * 0.45);
++      const centerOmega = 2 * Math.PI * center / sampleRate;
++      const A = 10 ** (gain / 40);
++      const alpha = Math.sin(centerOmega) / (2 * 1.414);
++      const b0 = 1 + alpha * A, b1 = -2 * Math.cos(centerOmega), b2 = 1 - alpha * A;
++      const a0 = 1 + alpha / A, a1 = b1, a2 = 1 - alpha / A;
++      const nr = b0 + b1 * cosine + b2 * cosine2;
++      const ni = -b1 * sine - b2 * sine2;
++      const dr = a0 + a1 * cosine + a2 * cosine2;
++      const di = -a1 * sine - a2 * sine2;
++      responseDb += 10 * Math.log10(Math.max((nr * nr + ni * ni) / (dr * dr + di * di), 1e-12));
++    });
++    maximumDb = Math.max(maximumDb, responseDb);
++  }
++  return maximumDb > 0.05 ? maximumDb + 1 : 0;
++}
++
++function smoothParam(param, value, context) {
++  const now = context.currentTime;
++  param.cancelScheduledValues(now);
++  param.setTargetAtTime(value, now, 0.025);
++}
++
++function applyEqToGraph(graph) {
++  eqState.gains.forEach((gain, index) => smoothParam(graph.filters[index].gain, eqState.bypass ? 0 : gain, graph.context));
++  const compensation = graphPeakBoost(graph);
++  const preampDb = eqState.bypass ? 0 : clamp(eqState.preamp - compensation, -36, 6);
++  smoothParam(graph.preamp.gain, dbToGain(preampDb), graph.context);
++}
++
++function applyEq() {
++  graphRegistry.forEach(applyEqToGraph);
++  updateEqStatus();
++  saveEqState();
++}
++
++function ensureAudioGraph(audio) {
++  return audioGraphs.get(audio) || createAudioGraph(audio);
++}
++
++function registerPlayer(audio) {
++  audio.addEventListener("play", async () => {
++    document.querySelectorAll("audio.music-audio").forEach((other) => {
++      if (other !== audio && !other.paused) other.pause();
++    });
++    try {
++      const context = readAudioContext();
++      const graph = ensureAudioGraph(audio);
++      activeAudio = audio;
++      applyEqToGraph(graph);
++      await context.resume();
++      updateEqStatus();
++    } catch (error) {
++      updateEqStatus(error.message || "Equalizer unavailable; try the native player.");
++    }
++  });
++  audio.addEventListener("ended", () => {
++    if (activeAudio === audio) updateEqStatus();
++  });
++  audio.addEventListener("error", () => updateEqStatus("Audio could not load; check the file URL and cross-origin CORS access."));
++}
++
++function updateEqStatus(error = "") {
++  const status = document.getElementById("music-eq-status");
++  if (!status) return;
++  if (error) {
++    status.textContent = `EQ BYPASS // ${error}`;
++    return;
++  }
++  const label = activeAudio?.getAttribute("aria-label") || "No track selected";
++  const mode = eqState.bypass ? "BYPASS" : `EQ ${eqState.preset.toUpperCase()}`;
++  const graph = activeAudio ? audioGraphs.get(activeAudio) : null;
++  const trim = graph && !eqState.bypass ? clamp(eqState.preamp - graphPeakBoost(graph), -36, 6) : eqState.preamp;
++  status.textContent = `${mode} // ${label} // PREAMP ${eqState.preamp > 0 ? "+" : ""}${eqState.preamp.toFixed(1)} dB // EFFECTIVE ${trim.toFixed(1)} dB${eqState.autoHeadroom && !eqState.bypass ? " // AUTO HEADROOM ON" : ""}`;
++}
++
++function setPreset(name) {
++  if (!EQ_PRESETS[name]) return;
++  eqState = { ...eqState, gains: [...EQ_PRESETS[name]], preset: name, bypass: false };
++  syncEqControls();
++  applyEq();
++}
++
++function syncEqControls() {
++  const container = document.getElementById("music-equalizer");
++  if (!container) return;
++  container.querySelectorAll("[data-eq-band]").forEach((input) => {
++    const index = Number(input.dataset.eqBand);
++    input.value = String(eqState.gains[index]);
++    const value = container.querySelector(`[data-eq-value="${index}"]`);
++    if (value) value.textContent = `${eqState.gains[index] > 0 ? "+" : ""}${eqState.gains[index].toFixed(1)} dB`;
++  });
++  const preamp = container.querySelector("[data-eq-preamp]");
++  if (preamp) preamp.value = String(eqState.preamp);
++  const preampValue = container.querySelector("[data-eq-preamp-value]");
++  if (preampValue) preampValue.textContent = `${eqState.preamp > 0 ? "+" : ""}${eqState.preamp.toFixed(1)} dB`;
++  const headroom = container.querySelector("[data-eq-headroom]");
++  if (headroom) headroom.checked = eqState.autoHeadroom;
++  const bypass = container.querySelector("[data-eq-bypass]");
++  if (bypass) bypass.checked = eqState.bypass;
++  container.querySelectorAll("[data-eq-preset]").forEach((button) => {
++    button.setAttribute("aria-pressed", String(button.dataset.eqPreset === eqState.preset));
++  });
++  updateEqStatus();
++}
++
++function makeEqControl(parent, tag, className, text) {
++  return add(parent, tag, className, text);
++}
++
++function renderEqualizer() {
++  const container = document.getElementById("music-equalizer");
++  if (!container) return;
++  container.replaceChildren();
++  const presets = makeEqControl(container, "div", "eq-presets");
++  Object.keys(EQ_PRESETS).forEach((name) => {
++    const button = makeEqControl(presets, "button", "eq-action", name.toUpperCase());
++    button.type = "button";
++    button.dataset.eqPreset = name;
++    button.addEventListener("click", () => setPreset(name));
++  });
++
++  const eqPanel = makeEqControl(container, "div", "eq-panel");
++  const bands = makeEqControl(eqPanel, "div", "eq-bands");
++  EQ_BANDS.forEach(({ hz, label }, index) => {
++    const band = makeEqControl(bands, "div", "eq-band");
++    const sliderId = `eq-band-${hz}`;
++    const labelNode = makeEqControl(band, "label", "eq-frequency", `${label} Hz`);
++    labelNode.htmlFor = sliderId;
++    const slider = makeEqControl(band, "input", "eq-slider");
++    slider.type = "range";
++    slider.id = sliderId;
++    slider.min = "-12";
++    slider.max = "12";
++    slider.step = "0.5";
++    slider.value = String(eqState.gains[index]);
++    slider.dataset.eqBand = String(index);
++    slider.setAttribute("aria-label", `${hz} hertz band gain`);
++    const readout = makeEqControl(band, "output", "eq-band-value", "0.0 dB");
++    readout.dataset.eqValue = String(index);
++    slider.addEventListener("input", () => {
++      eqState.gains[index] = clamp(Number(slider.value), -12, 12);
++      eqState.preset = "Custom";
++      syncEqControls();
++      applyEq();
++    });
++  });
++
++  const lowerControls = makeEqControl(container, "div", "eq-lower-controls");
++  const preampControl = makeEqControl(lowerControls, "div", "eq-preamp-control");
++  const preampLabel = makeEqControl(preampControl, "label", "eq-control-label", "PREAMP");
++  preampLabel.htmlFor = "eq-preamp";
++  const preampSlider = makeEqControl(preampControl, "input", "eq-preamp-slider");
++  preampSlider.type = "range";
++  preampSlider.id = "eq-preamp";
++  preampSlider.min = "-18";
++  preampSlider.max = "6";
++  preampSlider.step = "0.5";
++  preampSlider.value = String(eqState.preamp);
++  preampSlider.dataset.eqPreamp = "true";
++  const preampValue = makeEqControl(preampControl, "output", "eq-control-value", "0.0 dB");
++  preampValue.dataset.eqPreampValue = "true";
++  preampSlider.addEventListener("input", () => {
++    eqState.preamp = clamp(Number(preampSlider.value), -18, 6);
++    eqState.preset = "Custom";
++    syncEqControls();
++    applyEq();
++  });
++
++  const switches = makeEqControl(lowerControls, "div", "eq-switches");
++  const headroomLabel = makeEqControl(switches, "label", "eq-check-label");
++  const headroom = makeEqControl(headroomLabel, "input", "eq-check");
++  headroom.type = "checkbox";
++  headroom.dataset.eqHeadroom = "true";
++  headroom.addEventListener("change", () => { eqState.autoHeadroom = headroom.checked; applyEq(); });
++  headroomLabel.append(headroom, document.createTextNode(" AUTO HEADROOM"));
++
++  const bypassLabel = makeEqControl(switches, "label", "eq-check-label");
++  const bypass = makeEqControl(bypassLabel, "input", "eq-check");
++  bypass.type = "checkbox";
++  bypass.dataset.eqBypass = "true";
++  bypass.addEventListener("change", () => { eqState.bypass = bypass.checked; applyEq(); });
++  bypassLabel.append(bypass, document.createTextNode(" EQ BYPASS"));
++
++  const reset = makeEqControl(switches, "button", "eq-action", "RESET FLAT");
++  reset.type = "button";
++  reset.addEventListener("click", () => {
++    eqState = { ...EQ_DEFAULTS, gains: [...EQ_DEFAULTS.gains] };
++    syncEqControls();
++    applyEq();
++  });
++  syncEqControls();
++}
++
++renderRecentTracks();
++renderTrackList(document.getElementById("music-featured"), tracks.filter((track) => track.featured), "No featured productions have been published yet.");
++const demos = tracks.filter((track) => !track.featured);
++renderTrackList(document.getElementById("music-demos"), demos, tracks.length ? "All published tracks are featured above." : "Featured tracks and demos will appear here when added to the catalogue.");
++renderSetup();
++renderPlatforms();
++renderPlayerPage();
++renderEqualizer();
+diff --git a/js/projects.js b/js/projects.js
+new file mode 100644
+index 0000000..84178e1
+--- /dev/null
++++ b/js/projects.js
+@@ -0,0 +1,288 @@
++const GITHUB_API = "https://api.github.com/users/430L/repos";
++const GITLAB_API = "https://gitlab.com/api/v4";
++
++function element(parent, tag, className, text) {
++  const node = document.createElement(tag);
++  if (className) node.className = className;
++  if (text !== undefined && text !== null) node.textContent = text;
++  parent.appendChild(node);
++  return node;
++}
++
++function safeHttpUrl(value) {
++  if (!value) return "";
++  try {
++    const url = new URL(value);
++    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
++  } catch {
++    return "";
++  }
++}
++
++function externalLink(parent, href, label, className = "") {
++  const url = safeHttpUrl(href);
++  if (!url) return null;
++  const anchor = element(parent, "a", className, label);
++  anchor.href = url;
++  anchor.target = "_blank";
++  anchor.rel = "noopener noreferrer";
++  return anchor;
++}
++
++function iconLink(parent, href, icon, label, className = "archive-action") {
++  const anchor = externalLink(parent, href, label, className);
++  if (!anchor) return null;
++  const glyph = element(anchor, "span", "archive-action-icon", icon);
++  glyph.setAttribute("aria-hidden", "true");
++  anchor.insertBefore(glyph, anchor.firstChild);
++  return anchor;
++}
++
++async function getJson(url) {
++  const response = await fetch(url, { headers: { Accept: "application/json" } });
++  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`.trim());
++  return response.json();
++}
++
++async function fetchGitHubRepos() {
++  const repos = [];
++  for (let page = 1; ; page += 1) {
++    const batch = await getJson(`${GITHUB_API}?per_page=100&sort=updated&page=${page}`);
++    if (!Array.isArray(batch)) throw new Error("Unexpected GitHub API response");
++    repos.push(...batch);
++    if (batch.length < 100) break;
++  }
++  return repos.map((repo) => ({
++    platform: "GitHub",
++    name: repo.name,
++    description: repo.description,
++    url: repo.html_url,
++    cloneUrl: repo.clone_url,
++    branch: repo.default_branch,
++    zipUrl: `https://github.com/${repo.full_name}/archive/refs/heads/${encodeURIComponent(repo.default_branch || "HEAD")}.zip`,
++    stars: repo.stargazers_count,
++    forks: repo.forks_count,
++    watchers: repo.watchers_count,
++    openIssues: repo.open_issues_count,
++    size: repo.size,
++    language: repo.language,
++    created: repo.created_at,
++    updated: repo.pushed_at || repo.updated_at,
++    archived: repo.archived,
++    fork: repo.fork,
++    visibility: repo.visibility || "public",
++    license: repo.license?.spdx_id || repo.license?.name || "",
++    topics: Array.isArray(repo.topics) ? repo.topics : [],
++    homepage: repo.homepage,
++    issuesUrl: repo.has_issues ? `${repo.html_url}/issues` : "",
++    releasesUrl: `${repo.html_url}/releases`,
++    readmeUrl: `${repo.html_url}/blob/${encodeURIComponent(repo.default_branch || "HEAD")}/README.md`
++  }));
++}
++
++async function fetchGitLabRepos() {
++  const users = await getJson(`${GITLAB_API}/users?username=paysonism`);
++  const user = Array.isArray(users) ? users.find((entry) => entry.username === "paysonism") : null;
++  if (!user?.id) throw new Error("Could not resolve the paysonism GitLab profile");
++
++  const repos = [];
++  for (let page = 1; ; page += 1) {
++    const batch = await getJson(`${GITLAB_API}/users/${encodeURIComponent(user.id)}/projects?owned=true&visibility=public&per_page=100&order_by=last_activity_at&sort=desc&page=${page}`);
++    if (!Array.isArray(batch)) throw new Error("Unexpected GitLab API response");
++    repos.push(...batch);
++    if (batch.length < 100) break;
++  }
++  return repos.map((repo) => {
++    const branch = repo.default_branch || "main";
++    const repoSlug = repo.path || String(repo.name || "project").toLowerCase().replace(/[^a-z0-9-]+/g, "-");
++    const branchSlug = branch.replace(/[^a-zA-Z0-9._-]+/g, "-");
++    const baseUrl = repo.web_url;
++    return {
++      platform: "GitLab",
++      name: repo.name,
++      description: repo.description,
++      url: baseUrl,
++      cloneUrl: repo.http_url_to_repo,
++      branch,
++      zipUrl: `${baseUrl}/-/archive/${encodeURIComponent(branch)}/${encodeURIComponent(repoSlug)}-${encodeURIComponent(branchSlug)}.zip`,
++      stars: repo.star_count,
++      forks: repo.forks_count,
++      watchers: null,
++      openIssues: repo.open_issues_count ?? repo.open_issues ?? null,
++      size: null,
++      language: "",
++      created: repo.created_at,
++      updated: repo.last_activity_at,
++      archived: Boolean(repo.archived),
++      fork: Boolean(repo.forked_from_project),
++      visibility: repo.visibility || "public",
++      license: "",
++      topics: Array.isArray(repo.topics) ? repo.topics : Array.isArray(repo.tag_list) ? repo.tag_list : [],
++      homepage: "",
++      issuesUrl: `${baseUrl}/-/issues`,
++      releasesUrl: `${baseUrl}/-/releases`,
++      readmeUrl: repo.readme_url
++    };
++  });
++}
++
++function identityKey(name) {
++  const normalized = String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
++  const aliases = new Map([["cormemsysvulnerabledriver", "cormemvulnerabledriver"]]);
++  return aliases.get(normalized) || normalized;
++}
++
++function mergeDuplicates(githubRepos, gitlabRepos) {
++  const groups = new Map();
++  [...gitlabRepos, ...githubRepos].forEach((repo) => {
++    const key = identityKey(repo.name);
++    if (!key) return;
++    if (!groups.has(key)) groups.set(key, []);
++    groups.get(key).push(repo);
++  });
++  return [...groups.values()]
++    .map((sources) => ({
++      name: sources[0].name,
++      sources,
++      description: sources.find((repo) => repo.description)?.description || "",
++      updated: sources.map((repo) => repo.updated).filter(Boolean).sort().at(-1) || ""
++    }))
++    .sort((a, b) => String(b.updated).localeCompare(String(a.updated)) || a.name.localeCompare(b.name));
++}
++
++function dateLabel(value) {
++  if (!value) return "";
++  const date = new Date(value);
++  return Number.isNaN(date.valueOf()) ? value : new Intl.DateTimeFormat("en", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" }).format(date);
++}
++
++function sourceIcon(platform) {
++  return platform === "GitLab" ? "theme/gitlab.svg" : "theme/github.svg";
++}
++
++function renderRepository(repo, parent) {
++  const card = element(parent, "div", "project-compact repository-card");
++  const platforms = repo.sources.map((source) => source.platform.toLowerCase()).join(" ");
++  card.dataset.repositorySources = platforms;
++  element(card, "p", "project-kicker", repo.sources.length > 1 ? "CROSS-HOST REPOSITORY MATCH" : "SOURCE REPOSITORY");
++  const title = element(card, "p", "project-title");
++  externalLink(title, repo.sources[0].url, repo.name);
++  element(card, "p", "project-description", repo.description || "No description provided by the repository owner.");
++
++  const actions = element(card, "div", "repository-actions");
++  repo.sources.forEach((source) => {
++    const platformLabel = source.platform === "GitLab" ? "GitLab source" : "GitHub source";
++    const sourceAnchor = externalLink(actions, source.url, platformLabel, "archive-source-link");
++    if (sourceAnchor) {
++      const image = element(sourceAnchor, "img", "archive-source-icon");
++      image.src = sourceIcon(source.platform);
++      image.alt = "";
++      sourceAnchor.insertBefore(image, sourceAnchor.firstChild);
++    }
++    iconLink(actions, source.zipUrl, "↓", `${source.platform} ZIP`);
++    iconLink(actions, source.cloneUrl, "⑂", `${source.platform} clone`);
++    if (source.readmeUrl) iconLink(actions, source.readmeUrl, "▤", "README");
++    if (source.issuesUrl) iconLink(actions, source.issuesUrl, "?", "Issues");
++    if (source.releasesUrl) iconLink(actions, source.releasesUrl, "◆", "Releases");
++    if (safeHttpUrl(source.homepage)) iconLink(actions, source.homepage, "↗", "Website");
++  });
++
++  repo.sources.forEach((source) => {
++    const metadata = element(card, "p", "project-meta repository-meta");
++    const details = [
++      ["★", "Stars", source.stars ?? 0],
++      ["⑂", "Forks", source.forks ?? 0],
++      source.watchers !== null && source.watchers !== undefined ? ["◉", "Watchers", source.watchers] : null,
++      source.openIssues !== null && source.openIssues !== undefined ? ["?", "Open issues", source.openIssues] : null,
++      source.language ? ["⌘", "Language", source.language] : null,
++      source.branch ? ["⑂", "Branch", source.branch] : null,
++      source.license ? ["▤", "License", source.license] : null,
++      source.created ? ["＋", "Created", dateLabel(source.created)] : null,
++      source.updated ? ["◷", "Updated", dateLabel(source.updated)] : null,
++      source.size !== null && source.size !== undefined ? ["▣", "Size", `${source.size} KB`] : null,
++      source.fork ? ["⑂", "Fork"] : null,
++      source.archived ? ["■", "Archived"] : null
++    ].filter(Boolean);
++    const provider = element(metadata, "span", "archive-meta-provider");
++    const providerIcon = element(provider, "img", "archive-meta-provider-icon");
++    providerIcon.src = sourceIcon(source.platform);
++    providerIcon.alt = "";
++    element(provider, "span", "", source.platform);
++    details.forEach(([icon, label, value]) => {
++      const item = element(metadata, "span", "archive-meta-item");
++      const glyph = element(item, "span", "archive-meta-icon", icon);
++      glyph.setAttribute("aria-hidden", "true");
++      item.appendChild(document.createTextNode(value === undefined ? label : `${label}: ${value}`));
++    });
++  });
++
++  const topics = [...new Set(repo.sources.flatMap((source) => source.topics || []))];
++  if (topics.length) {
++    const topicRow = element(card, "p", "project-meta repository-topics");
++    element(topicRow, "span", "archive-topic-heading", "TOPICS");
++    topics.forEach((topic) => element(topicRow, "span", "archive-topic", topic));
++  }
++}
++
++function applyRepositoryFilter(filter, combined) {
++  const cards = document.querySelectorAll(".repository-card");
++  let visible = 0;
++  cards.forEach((card) => {
++    const sources = card.dataset.repositorySources.split(" ");
++    const matches = filter === "all" || sources.includes(filter);
++    card.hidden = !matches;
++    if (matches) visible += 1;
++  });
++  document.querySelectorAll("[data-repository-filter]").forEach((control) => {
++    control.setAttribute("aria-current", String(control.dataset.repositoryFilter === filter));
++  });
++  const resultCount = document.getElementById("projects-result-count");
++  if (resultCount) resultCount.textContent = `Showing ${visible} of ${combined.length} unique repositories`;
++}
++
++async function load() {
++  const status = document.getElementById("projects-status");
++  const list = document.getElementById("projects-list");
++  const summary = document.getElementById("projects-summary");
++  if (!status || !list || !summary) return;
++  const results = await Promise.allSettled([fetchGitLabRepos(), fetchGitHubRepos()]);
++  const [gitlabResult, githubResult] = results;
++  const gitlab = gitlabResult.status === "fulfilled" ? gitlabResult.value : [];
++  const github = githubResult.status === "fulfilled" ? githubResult.value : [];
++  const failures = [];
++  list.replaceChildren();
++  if (gitlabResult.status === "rejected") failures.push(`GitLab: ${gitlabResult.reason?.message || "could not load"}`);
++  if (githubResult.status === "rejected") failures.push(`GitHub: ${githubResult.reason?.message || "could not load"}`);
++  const combined = mergeDuplicates(github, gitlab);
++  const duplicateCount = gitlab.length + github.length - combined.length;
++  const gitlabUnique = combined.filter((entry) => entry.sources.some((source) => source.platform === "GitLab")).length;
++  const githubUnique = combined.filter((entry) => entry.sources.some((source) => source.platform === "GitHub")).length;
++  summary.textContent = `${combined.length} UNIQUE REPOSITORIES. ${duplicateCount} CROSS-HOST MATCHES COMBINED.`;
++
++  const countAll = document.getElementById("filter-count-all");
++  const countGitLab = document.getElementById("filter-count-gitlab");
++  const countGitHub = document.getElementById("filter-count-github");
++  if (countAll) countAll.textContent = `(${combined.length})`;
++  if (countGitLab) countGitLab.textContent = `(${gitlabUnique})`;
++  if (countGitHub) countGitHub.textContent = `(${githubUnique})`;
++  if (combined.length) combined.forEach((repo) => renderRepository(repo, list));
++  else element(list, "p", "", "No repository records could be loaded. Use the source profile links above to browse each public archive.");
++
++  if (failures.length) {
++    status.textContent = `PARTIAL CATALOGUE — ${failures.join("; ")}. Counts may be incomplete; refresh later.`;
++  } else {
++    status.textContent = "LIVE CATALOGUE COMPLETE — both public source archives responded.";
++  }
++  document.querySelectorAll("[data-repository-filter]").forEach((control) => {
++    control.addEventListener("click", (event) => {
++      event.preventDefault();
++      applyRepositoryFilter(control.dataset.repositoryFilter, combined);
++    });
++  });
++  applyRepositoryFilter("all", combined);
++}
++
++load().catch((error) => {
++  const status = document.getElementById("projects-status");
++  if (status) status.textContent = `Could not load repository archives: ${error.message || "unknown error"}. Use the source profile links above.`;
++});
+diff --git a/music-player.html b/music-player.html
+new file mode 100644
+index 0000000..5e7b60e
+--- /dev/null
++++ b/music-player.html
+@@ -0,0 +1,52 @@
++<!DOCTYPE html>
++<html lang="en">
++  <head>
++    <meta charset="utf-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++    <meta name="description" content="Listen to a Payson music project." />
++    <title>Payson - Music Player</title>
++    <link rel="stylesheet" type="text/css" href="css/mercury.css" />
++    <link href="https://fonts.googleapis.com/css?family=Aldrich" rel="stylesheet" type="text/css" />
++    <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" type="text/css" />
++  </head>
++  <body id="top">
++    <div id="mercury-wrapper">
++      <div id="mercury-banner">
++        <div id="mb-level-1"><div id="mb-level-1a"><div id="bulbs-L"></div></div><div id="mb-level-1b"><div id="electric"></div></div><div id="mb-level-1c"><div id="bulbs-R"></div></div></div>
++        <div id="mb-level-2"><div id="kr-lights"></div></div><div id="mb-level-3"></div>
++        <div id="mb-level-4"><div id="mb-level-4a"><div id="flashing-L"></div></div><div id="mb-level-4b"><div id="flashing-R"></div></div></div>
++        <div id="banner-nav"><ul>
++          <li><a href="index.html#about">ABOUT</a></li>
++          <li><a href="projects.html">PROJECTS</a></li>
++          <li><a href="music.html">MUSIC</a></li>
++          <li><a href="business.html">BUSINESS</a></li>
++          <li><a href="index.html#contact">CONTACT</a></li>
++        </ul></div>
++      </div>
++
++      <div id="content-area">
++        <div id="col-left">
++          <div class="Vbox"><div class="Vtop"><div class="VTitle">RECENT PROJECTS</div></div><div class="Vmid"><div class="sb-butns" id="music-recent"><ul><li>Loading music catalogue...</li></ul></div></div><div class="Vbtm"></div></div>
++          <div class="Vnavbox"><div class="Vnavtop"><div class="VnavTitle">MUSIC NAV</div></div><div class="Vnavmid"><div class="sb-butns"><ul>
++            <li><a class="sb-butn" href="music.html">All music</a></li><li><a class="sb-butn" href="business.html">Business</a></li><li><a class="sb-butn" href="projects.html">Projects</a></li><li><a class="sb-butn" href="forum.html">Forum</a></li>
++          </ul></div></div><div class="Vnavbtm"></div></div>
++        </div>
++
++        <div id="col-right">
++          <div class="Cbox"><div class="Ctop"><div class="CTitle">TRACK PLAYER</div></div><div class="Cmid"><div class="CInfo" id="music-player"><p>Loading selected track...</p></div></div><div class="Cbtm"></div></div>
++          <div class="Cbox" id="music-equalizer-panel"><div class="Ctop"><div class="CTitle">10-BAND GRAPHIC EQUALIZER</div></div><div class="Cmid"><div class="CInfo"><p>Independent 31 Hz–16 kHz bands use the browser's native, modern peaking filters. Auto headroom compensates for boosts to help preserve clean peaks. Changes affect any Payson player on this page.</p><div id="music-equalizer"><p>Preparing audio controls...</p></div><p id="music-eq-status" class="eq-status" aria-live="polite">Start a track to connect the equalizer.</p></div></div><div class="Cbtm"></div></div>
++          <div class="Cbox"><div class="Ctop"><div class="CTitle">MORE MUSIC</div></div><div class="Cmid"><div class="CInfo"><p>Browse <a href="music.html">featured productions, setup photos, and all tracks</a>.</p></div></div><div class="Cbtm"></div></div>
++        </div>
++      </div>
++
++      <div id="mercury-footer"><div id="ft-level-1">
++        <div class="footer-roller footer-roller-left"><div class="footer-roller-viewport"><p class="footer-roller-line">Track player // Payson music archive.</p></div></div>
++        <div class="ft-butns-box"><div class="ft-links"><ul><li><a class="ft-social" href="https://gitlab.com/paysonism" target="_blank" rel="noopener"><img src="theme/gitlab.svg" alt="GitLab" /></a></li><li><a class="ft-butn-2" href="#top" title="Page Top"></a></li><li><a class="ft-social" href="https://github.com/430L" target="_blank" rel="noopener"><img src="theme/github.svg" alt="GitHub 430L" /></a></li></ul></div></div>
++        <div class="footer-roller footer-roller-right"><div class="footer-roller-viewport"><p class="footer-roller-line">Listen to the work in progress.</p></div></div>
++      </div><div id="ft-level-2"><div class="ft-butns-box2"><div class="ft-links2"><ul><li><a class="ft-butn2-1" href="index.html">Home</a></li><li><a class="ft-butn2-1" href="projects.html">Projects</a></li><li><a class="ft-butn2-1" href="music.html">Music</a></li><li><a class="ft-butn2-1" href="forum.html">Forum</a></li><li><a class="ft-butn2-1" href="#top">Top</a></li></ul></div></div></div></div>
++    </div>
++    <script type="text/javascript" src="js/footer-roller.js"></script>
++    <script type="module" src="js/mercury-interactions.js"></script>
++    <script type="module" src="js/music.js"></script>
++  </body>
++</html>
+diff --git a/music.html b/music.html
+new file mode 100644
+index 0000000..b0ff98c
+--- /dev/null
++++ b/music.html
+@@ -0,0 +1,63 @@
++<!DOCTYPE html>
++<html lang="en">
++  <head>
++    <meta charset="utf-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++    <meta name="description" content="Music projects, featured productions, demos, and production setup by Payson." />
++    <title>Payson - Music</title>
++    <link rel="stylesheet" type="text/css" href="css/mercury.css" />
++    <link href="https://fonts.googleapis.com/css?family=Aldrich" rel="stylesheet" type="text/css" />
++    <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" type="text/css" />
++  </head>
++  <body id="top">
++    <div id="mercury-wrapper">
++      <div id="mercury-banner">
++        <div id="mb-level-1"><div id="mb-level-1a"><div id="bulbs-L"></div></div><div id="mb-level-1b"><div id="electric"></div></div><div id="mb-level-1c"><div id="bulbs-R"></div></div></div>
++        <div id="mb-level-2"><div id="kr-lights"></div></div><div id="mb-level-3"></div>
++        <div id="mb-level-4"><div id="mb-level-4a"><div id="flashing-L"></div></div><div id="mb-level-4b"><div id="flashing-R"></div></div></div>
++        <div id="banner-nav"><ul>
++          <li><a href="index.html#about">ABOUT</a></li>
++          <li><a href="projects.html">PROJECTS</a></li>
++          <li><a href="music.html">MUSIC</a></li>
++          <li><a href="business.html">BUSINESS</a></li>
++          <li><a href="index.html#contact">CONTACT</a></li>
++        </ul></div>
++      </div>
++
++      <div id="content-area">
++        <div id="col-left">
++          <div class="Vbox"><div class="Vtop"><div class="VTitle">RECENT PROJECTS</div></div><div class="Vmid"><div class="sb-butns" id="music-recent"><ul><li>Loading music catalogue...</li></ul></div></div><div class="Vbtm"></div></div>
++          <div class="Vnavbox"><div class="Vnavtop"><div class="VnavTitle">MUSIC LINKS</div></div><div class="Vnavmid"><div class="sb-butns"><ul id="music-platforms"><li><span>Loading platform links...</span></li></ul></div></div><div class="Vnavbtm"></div></div>
++          <div class="Vnavbox"><div class="Vnavtop"><div class="VnavTitle">EXPLORE</div></div><div class="Vnavmid"><div class="sb-butns"><ul>
++            <li><a class="sb-butn" href="index.html">Home</a></li>
++            <li><a class="sb-butn" href="projects.html">All projects</a></li>
++            <li><a class="sb-butn" href="business.html">Business</a></li>
++            <li><a class="sb-butn" href="forum.html">Community forum</a></li>
++          </ul></div></div><div class="Vnavbtm"></div></div>
++        </div>
++
++        <div id="col-right">
++          <div class="Cbox" id="music-featured-panel"><div class="Ctop"><div class="CTitle">FEATURED PRODUCTIONS</div></div><div class="Cmid"><div class="CInfo" id="music-featured"><p>Loading featured productions...</p></div></div><div class="Cbtm"></div></div>
++          <div class="Cbox" id="music-setup-panel"><div class="Ctop"><div class="CTitle">PRODUCTION SETUP</div></div><div class="Cmid"><div class="CInfo" id="music-setup"><p>Loading production setup...</p></div></div><div class="Cbtm"></div></div>
++          <div class="Cbox" id="music-equalizer-panel"><div class="Ctop"><div class="CTitle">10-BAND GRAPHIC EQUALIZER</div></div><div class="Cmid"><div class="CInfo"><p>Independent 31 Hz–16 kHz bands use the browser's native, modern peaking filters. Auto headroom compensates for boosts to help preserve clean peaks. Changes affect any Payson player on this page.</p><div id="music-equalizer"><p>Preparing audio controls...</p></div><p id="music-eq-status" class="eq-status" aria-live="polite">Start a track to connect the equalizer.</p></div></div><div class="Cbtm"></div></div>
++          <div class="Cbox" id="music-demos-panel"><div class="Ctop"><div class="CTitle">TRACKS &amp; DEMOS</div></div><div class="Cmid"><div class="CInfo"><p>Listen directly here, or open a dedicated player for track information.</p><div id="music-demos"><p>Loading tracks...</p></div></div></div><div class="Cbtm"></div></div>
++        </div>
++      </div>
++
++      <div id="mercury-footer"><div id="ft-level-1">
++        <div class="footer-roller footer-roller-left"><div class="footer-roller-viewport"><p class="footer-roller-line">Music, demos, and sound projects.</p></div></div>
++        <div class="ft-butns-box"><div class="ft-links"><ul>
++          <li><a class="ft-social" href="https://gitlab.com/paysonism" target="_blank" rel="noopener"><img src="theme/gitlab.svg" alt="GitLab" /></a></li>
++          <li><a class="ft-butn-2" href="#top" title="Page Top"></a></li>
++          <li><a class="ft-social" href="https://github.com/430L" target="_blank" rel="noopener"><img src="theme/github.svg" alt="GitHub 430L" /></a></li>
++        </ul></div></div>
++        <div class="footer-roller footer-roller-right"><div class="footer-roller-viewport"><p class="footer-roller-line">Listen to the work in progress.</p></div></div>
++      </div><div id="ft-level-2"><div class="ft-butns-box2"><div class="ft-links2"><ul>
++        <li><a class="ft-butn2-1" href="index.html">Home</a></li><li><a class="ft-butn2-1" href="projects.html">Projects</a></li><li><a class="ft-butn2-1" href="business.html">Business</a></li><li><a class="ft-butn2-1" href="forum.html">Forum</a></li><li><a class="ft-butn2-1" href="#top">Top</a></li>
++      </ul></div></div></div></div>
++    </div>
++    <script type="text/javascript" src="js/footer-roller.js"></script>
++    <script type="module" src="js/mercury-interactions.js"></script>
++    <script type="module" src="js/music.js"></script>
++  </body>
++</html>
+diff --git a/projects.html b/projects.html
+new file mode 100644
+index 0000000..0a94e0f
+--- /dev/null
++++ b/projects.html
+@@ -0,0 +1,64 @@
++<!DOCTYPE html>
++<html lang="en">
++  <head>
++    <meta charset="utf-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++    <meta name="description" content="Complete public repository catalogue for Payson's GitLab and GitHub projects." />
++    <title>Payson - Full Project Portfolio</title>
++    <link rel="stylesheet" type="text/css" href="css/mercury.css" />
++    <link href="https://fonts.googleapis.com/css?family=Aldrich" rel="stylesheet" type="text/css" />
++    <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" type="text/css" />
++  </head>
++  <body id="top">
++    <div id="mercury-wrapper">
++      <div id="mercury-banner">
++        <div id="mb-level-1"><div id="mb-level-1a"><div id="bulbs-L"></div></div><div id="mb-level-1b"><div id="electric"></div></div><div id="mb-level-1c"><div id="bulbs-R"></div></div></div>
++        <div id="mb-level-2"><div id="kr-lights"></div></div><div id="mb-level-3"></div>
++        <div id="mb-level-4"><div id="mb-level-4a"><div id="flashing-L"></div></div><div id="mb-level-4b"><div id="flashing-R"></div></div></div>
++        <div id="banner-nav"><ul>
++          <li><a href="index.html#about">ABOUT</a></li>
++          <li><a href="projects.html">PROJECTS</a></li>
++          <li><a href="music.html">MUSIC</a></li>
++          <li><a href="business.html">BUSINESS</a></li>
++          <li><a href="index.html#contact">CONTACT</a></li>
++        </ul></div>
++      </div>
++
++      <div id="content-area">
++        <div id="col-left">
++          <div class="Vnavbox"><div class="Vnavtop"><div class="VnavTitle">SOURCE ARCHIVE</div></div><div class="Vnavmid"><div class="sb-butns"><ul>
++            <li><a class="sb-butn archive-filter" href="#projects-list" data-repository-filter="all" aria-current="true">All source projects <span id="filter-count-all"></span></a></li>
++            <li><a class="sb-butn archive-filter" href="#projects-list" data-repository-filter="gitlab"><img class="archive-filter-icon" src="theme/gitlab.svg" alt="" />GitLab / Payson <span id="filter-count-gitlab"></span></a></li>
++            <li><a class="sb-butn archive-filter" href="#projects-list" data-repository-filter="github"><img class="archive-filter-icon" src="theme/github.svg" alt="" />GitHub / 430L <span id="filter-count-github"></span></a></li>
++          </ul></div></div><div class="Vnavbtm"></div></div>
++          <div class="Vbox"><div class="Vtop"><div class="VTitle">ARCHIVE STATUS</div></div><div class="Vmid"><div class="VInfo">
++            <p id="projects-summary">Loading source archive counts...</p>
++            <p id="projects-result-count">Loading repository index...</p>
++            <p id="projects-status" aria-live="polite">Contacting the public source archives...</p>
++          </div></div><div class="Vbtm"></div></div>
++          <div class="Vnavbox"><div class="Vnavtop"><div class="VnavTitle">EXPLORE</div></div><div class="Vnavmid"><div class="sb-butns"><ul>
++            <li><a class="sb-butn" href="index.html">Home</a></li><li><a class="sb-butn" href="music.html">Music</a></li><li><a class="sb-butn" href="business.html">Business</a></li><li><a class="sb-butn" href="forum.html">Community forum</a></li>
++          </ul></div></div><div class="Vnavbtm"></div></div>
++        </div>
++
++        <div id="col-right">
++          <div class="Cbox"><div class="Ctop"><div class="CTitle">SOURCE CODE ARCHIVE</div></div><div class="Cmid"><div class="CInfo">
++            <p>One catalogue for public repositories from both source profiles. Use the left-rail selectors to narrow the list by host; duplicate projects stay grouped and retain each host's links.</p>
++            <p class="source-profile-links"><a href="https://gitlab.com/paysonism?tab=projects" target="_blank" rel="noopener"><img class="archive-source-icon" src="theme/gitlab.svg" alt="" />Open GitLab / Payson</a> <a href="https://github.com/430L" target="_blank" rel="noopener"><img class="archive-source-icon" src="theme/github.svg" alt="" />Open GitHub / 430L</a></p>
++            <p>Repository data loads live from the public APIs. Each entry includes direct source, ZIP, and clone links plus available stars and repository details.</p>
++          </div></div><div class="Cbtm"></div></div>
++          <div class="Cbox"><div class="Ctop"><div class="CTitle">PROJECT INDEX</div></div><div class="Cmid"><div class="CInfo" id="projects-list" aria-live="polite"><p>Loading repository catalogue...</p></div></div><div class="Cbtm"></div></div>
++        </div>
++      </div>
++
++      <div id="mercury-footer"><div id="ft-level-1">
++        <div class="footer-roller footer-roller-left"><div class="footer-roller-viewport"><p class="footer-roller-line">Full public project archive // GitLab + GitHub.</p></div></div>
++        <div class="ft-butns-box"><div class="ft-links"><ul><li><a class="ft-social" href="https://gitlab.com/paysonism" target="_blank" rel="noopener"><img src="theme/gitlab.svg" alt="GitLab" /></a></li><li><a class="ft-butn-2" href="#top" title="Page Top"></a></li><li><a class="ft-social" href="https://github.com/430L" target="_blank" rel="noopener"><img src="theme/github.svg" alt="GitHub 430L" /></a></li></ul></div></div>
++        <div class="footer-roller footer-roller-right"><div class="footer-roller-viewport"><p class="footer-roller-line">Live source records // Downloadable archives.</p></div></div>
++      </div><div id="ft-level-2"><div class="ft-butns-box2"><div class="ft-links2"><ul><li><a class="ft-butn2-1" href="index.html">Home</a></li><li><a class="ft-butn2-1" href="music.html">Music</a></li><li><a class="ft-butn2-1" href="business.html">Business</a></li><li><a class="ft-butn2-1" href="forum.html">Forum</a></li><li><a class="ft-butn2-1" href="#top">Top</a></li></ul></div></div></div></div>
++    </div>
++    <script type="text/javascript" src="js/footer-roller.js"></script>
++    <script type="module" src="js/mercury-interactions.js"></script>
++    <script type="module" src="js/projects.js"></script>
++  </body>
++</html>
+diff --git a/scripts/build.mjs b/scripts/build.mjs
+index 0587cf7..850e1c0 100644
+--- a/scripts/build.mjs
++++ b/scripts/build.mjs
+@@ -11,8 +11,9 @@ await mkdir(path.join(dist, "client"), { recursive: true });
+ await mkdir(path.join(dist, ".openai"), { recursive: true });
+ 
+ await cp(path.join(root, "worker", "index.js"), path.join(dist, "server", "index.js"));
+-await cp(path.join(root, "index.html"), path.join(dist, "client", "index.html"));
+-await cp(path.join(root, "forum.html"), path.join(dist, "client", "forum.html"));
++for (const page of ["index.html", "forum.html", "music.html", "music-player.html", "business.html", "projects.html"]) {
++	await cp(path.join(root, page), path.join(dist, "client", page));
++}
+ 
+ for (const folder of ["css", "theme", "assets", "js"]) {
+ 	await cp(path.join(root, folder), path.join(dist, "client", folder), { recursive: true });
+diff --git a/scripts/verify.mjs b/scripts/verify.mjs
+index 4a72ea0..48e276a 100644
+--- a/scripts/verify.mjs
++++ b/scripts/verify.mjs
+@@ -6,8 +6,22 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+ const required = [
+ 	"dist/client/index.html",
+ 	"dist/client/forum.html",
++	"dist/client/music.html",
++	"dist/client/music-player.html",
++	"dist/client/business.html",
++	"dist/client/projects.html",
+ 	"dist/client/js/chat.js",
+ 	"dist/client/js/forum.js",
++	"dist/client/js/music.js",
++	"dist/client/js/music-data.js",
++	"dist/client/js/business.js",
++	"dist/client/js/business-data.js",
++	"dist/client/js/projects.js",
++	"dist/client/assets/music/synthwave-test-demo.mp3",
++	"dist/client/assets/music/ambient-test-demo.mp3",
++	"dist/client/assets/music/studio-setup-sample.jpg",
++	"dist/client/assets/business/northstar-sample.svg",
++	"dist/client/assets/business/relay-sample.svg",
+ 	"dist/client/js/vendor/marked.esm.js",
+ 	"dist/client/js/vendor/purify.es.mjs",
+ 	"dist/server/index.js",
+diff --git a/tests/content-cursors.test.mjs b/tests/content-cursors.test.mjs
+index 9576a39..a2aa6d2 100644
+--- a/tests/content-cursors.test.mjs
++++ b/tests/content-cursors.test.mjs
+@@ -16,11 +16,12 @@ test("homepage imports the approved legacy copy without restoring legacy structu
+ 		"Like-minded Exploiters",
+ 		"Hey, I'm Payson!",
+ 		"custom AI tools",
+-		"MY MOST KNOWN PROJECTS",
++		"FEATURED PROJECTS",
++		"FORZA PAINTER FH6",
++		"HaxSDK",
++		"UNKNOWNCHEATS PLUS",
++		"GITHUB SHOWCASE / 430L",
+ 		"NO LONGER",
+-		"CorMem Vulnerable Driver",
+-		"VMProtect Unpacker",
+-		"Capstone for disassembly",
+ 		"Hypervisor Docs: VT-X Hypervisor Docs Collection",
+ 		"CHATROOM",
+ 		"Visit forum"
+@@ -31,7 +32,8 @@ test("homepage imports the approved legacy copy without restoring legacy structu
+ 		"AT A GLANCE",
+ 		"100+ projects",
+ 		"SELECTED SYSTEMS &amp; RESEARCH WORK",
+-		"CORMEM VULNERABLE DRIVER REVERSAL",
++		"CORMEM VULNERABLE DRIVER",
++		"VMPROTECT UNPACKER",
+ 		"IOCTLBF",
+ 		"STATUS......ACTIVE"
+ 	]) assert.doesNotMatch(html, new RegExp(superseded.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
+diff --git a/tests/portfolio-pages.test.mjs b/tests/portfolio-pages.test.mjs
+new file mode 100644
+index 0000000..d6aa5b1
+--- /dev/null
++++ b/tests/portfolio-pages.test.mjs
+@@ -0,0 +1,101 @@
++import test from "node:test";
++import assert from "node:assert/strict";
++import { readFile } from "node:fs/promises";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++
++const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
++const read = (file) => readFile(path.join(root, file), "utf8");
++
++test("new pages reuse the Mercury shell and add no page-local styles", async () => {
++  for (const file of ["music.html", "music-player.html", "business.html", "projects.html"]) {
++    const html = await read(file);
++    assert.match(html, /href="css\/mercury\.css"/, `${file} uses the shared stylesheet`);
++    assert.match(html, /fonts\.googleapis\.com\/css2\?family=Michroma/);
++    assert.match(html, /id="mercury-banner"/);
++    assert.match(html, /id="content-area"/);
++    assert.match(html, /id="col-left"/);
++    assert.match(html, /id="col-right"/);
++    assert.match(html, /class="Cbox"/);
++    assert.match(html, /class="V(?:box|navbox)"/);
++    assert.doesNotMatch(html, /<style\b|style="/, `${file} does not add page-local styles`);
++    assert.match(html, /projects\.html/);
++    assert.match(html, /music\.html/);
++    assert.match(html, /business\.html/);
++  }
++  const music = await read("music.html");
++  const player = await read("music-player.html");
++  assert.match(music, /id="music-equalizer"/);
++  assert.match(player, /id="music-equalizer"/);
++  const css = await read("css/mercury.css");
++  assert.match(css, /"Bank Gothic", "Michroma"/);
++  assert.match(css, /\.eq-bands[\s\S]*grid-template-columns:\s*repeat\(10/);
++  assert.match(css, /\.archive-filter\[aria-current="true"\]/);
++});
++
++test("sample music and business records, MP3s, and their editable timelines are present", async () => {
++  const music = await import(path.join(root, "js", "music-data.js"));
++  const business = await import(path.join(root, "js", "business-data.js"));
++  assert.equal(music.musicCatalog.tracks.length, 2);
++  assert.ok(music.musicCatalog.tracks.every((track) => /SAMPLE|TEST/.test(`${track.title} ${track.description}`)));
++  assert.equal(music.musicCatalog.productionSetup.length, 1);
++  assert.equal(music.musicCatalog.platforms.length, 3);
++  assert.equal(business.companies.length, 2);
++  assert.ok(business.companies.every((company) => company.name.includes("SAMPLE")));
++  assert.ok(business.companies.every((company) => company.timeline.length >= 3));
++  assert.ok(business.companies.every((company) => company.score >= 0 && company.score <= 5));
++
++  for (const track of music.musicCatalog.tracks) {
++    const bytes = await readFile(path.join(root, track.audio));
++    assert.ok(bytes.length > 10000, `${track.audio} contains playable MP3 data`);
++    assert.equal(bytes[0], 0xff, `${track.audio} starts with an MPEG audio frame`);
++    assert.equal(bytes[1] & 0xe0, 0xe0, `${track.audio} has an MPEG sync header`);
++  }
++
++  const musicRenderer = await read("js/music.js");
++  assert.match(musicRenderer, /audio\.controls = true/);
++  assert.match(musicRenderer, /audio\.src = track\.audio/);
++  assert.match(musicRenderer, /music-player\.html\?track=/);
++  assert.match(musicRenderer, /createMediaElementSource/);
++  assert.match(musicRenderer, /createBiquadFilter/);
++  assert.match(musicRenderer, /filter\.type = "peaking"/);
++  assert.match(musicRenderer, /filter\.Q\.value = 1\.414/);
++  assert.match(musicRenderer, /setTargetAtTime/);
++  assert.match(musicRenderer, /autoHeadroom/);
++  assert.match(musicRenderer, /DynamicsCompressor/);
++  assert.match(musicRenderer, /localStorage/);
++
++  const businessRenderer = await read("js/business.js");
++  assert.match(businessRenderer, /company\.timeline/);
++  assert.match(businessRenderer, /company\.score/);
++  assert.match(businessRenderer, /company\.logo/);
++  assert.match(businessRenderer, /#\$\{safeId\(company, index\)\}/);
++});
++
++test("source-archive controls filter a paginated, deduplicated project catalogue", async () => {
++  const projects = await read("js/projects.js");
++  const html = await read("projects.html");
++  const build = await read("scripts/build.mjs");
++  const verify = await read("scripts/verify.mjs");
++  assert.match(projects, /api\.github\.com\/users\/430L\/repos/);
++  assert.match(projects, /gitlab\.com\/api\/v4/);
++  assert.match(projects, /per_page=100/);
++  assert.match(projects, /Promise\.allSettled/);
++  assert.match(projects, /identityKey/);
++  assert.match(projects, /cormemsysvulnerabledriver/);
++  assert.match(projects, /stargazers_count/);
++  assert.match(projects, /star_count/);
++  assert.match(projects, /archive\/refs\/heads/);
++  assert.match(projects, /\/\-\/archive\//);
++  assert.match(projects, /data-repository-filter/);
++  assert.match(projects, /applyRepositoryFilter/);
++  assert.match(projects, /repositorySources/);
++  assert.match(html, /data-repository-filter="gitlab"/);
++  assert.match(html, /data-repository-filter="github"/);
++  assert.match(html, /SOURCE CODE ARCHIVE/);
++
++  for (const page of ["music.html", "music-player.html", "business.html", "projects.html"]) {
++    assert.ok(build.includes(`"${page}"`), `${page} is copied to deploy output`);
++    assert.ok(verify.includes(`dist/client/${page}`), `${page} is verified in deploy output`);
++  }
++});
