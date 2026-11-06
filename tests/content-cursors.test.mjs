@@ -15,15 +15,23 @@ test("homepage imports the approved legacy copy without restoring legacy structu
 		"C, C++, and KMDF",
 		"Like-minded Exploiters",
 		"Hey, I'm Payson!",
-		"custom AI tools",
-		"MY MOST KNOWN PROJECTS",
+		"AI literacy",
+		"MY LATEST OPEN SOURCE PROJECTS",
+		"UnknownCheats+",
 		"NO LONGER",
 		"CorMem Vulnerable Driver",
+		"https://gitlab.com/paysonism/cormem-vulnerable-driver",
 		"VMProtect Unpacker",
 		"Capstone for disassembly",
 		"Hypervisor Docs: VT-X Hypervisor Docs Collection",
+		"STUDIO DESK",
+		"MUSIC PRODUCTION",
+		"THE BAND",
+		"theme/on-air.gif",
+		"theme/badge-github.gif",
 		"CHATROOM",
-		"Visit forum"
+		"Visit forum",
+		"Tech Stack"
 	]) assert.match(html, new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
 
 	for (const superseded of [
@@ -33,8 +41,17 @@ test("homepage imports the approved legacy copy without restoring legacy structu
 		"SELECTED SYSTEMS &amp; RESEARCH WORK",
 		"CORMEM VULNERABLE DRIVER REVERSAL",
 		"IOCTLBF",
-		"STATUS......ACTIVE"
+		"STATUS......ACTIVE",
+		"KICKER KICKER KICKER",
+		"https://dsc.gg/",
+		"uc-logo.jpg",
+		"monitor-neptune"
 	]) assert.doesNotMatch(html, new RegExp(superseded.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
+
+	for (const file of ["on-air.gif", "band-badge.gif", "badge-github.gif", "badge-gitlab.gif", "badge-forum.gif", "badge-best.gif", "new.gif"]) {
+		const bytes = await readFile(path.join(root, "theme", file));
+		assert.equal(bytes.subarray(0, 6).toString("ascii"), "GIF89a", `${file} is a GIF89a badge`);
+	}
 });
 
 test("every Windows 98 cursor is a local CUR file with a semantic CSS fallback", async () => {

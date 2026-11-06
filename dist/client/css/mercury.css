@@ -503,7 +503,11 @@ abbr[title] { cursor: url('../assets/cursors/help.cur'), help; }
 	text-shadow: 1px 1px 2px #000;
 	font-family: Verdana, Tahoma, sans-serif;
 }
-.Vinfo, p {
+/* Paragraph reset. The old rules were ".Vinfo, p" and ".Cinfo, p".
+   Those class names never matched .VInfo / .CInfo, so every paragraph
+   on the page picked up the spacing. Kept as an element rule so a
+   later class can still override it. */
+p {
 	padding: 0px 0px 12px 0px;
 	margin: 0px;
 }
@@ -618,6 +622,7 @@ abbr[title] { cursor: url('../assets/cursors/help.cur'), help; }
 	outline-offset: 2px;
 }
 #chat-submit:disabled { color: #414141; }
+#chat-older[hidden] { display: none; }
 .chat-older-row { padding-bottom: 12px; }
 #chat-feedback {
 	min-height: 14px;
@@ -722,13 +727,10 @@ textarea.forum-textarea { min-height: 92px; resize: vertical; }
 	font: inherit;
 	line-height: inherit;
 	text-decoration: underline;
-	text-decoration-color: #737373;
-	text-underline-offset: 2px;
 	text-shadow: 1px 1px 2px #000;
 }
 .forum-text-action:hover {
 	color: #C0C0C0;
-	text-decoration-color: #C0C0C0;
 	text-shadow: 1px 1px 2px #000;
 }
 .forum-text-action[hidden] { display: none; }
@@ -757,12 +759,10 @@ textarea.forum-textarea { min-height: 92px; resize: vertical; }
 .forum-page .CInfo a:active,
 .forum-page .CInfo a:visited {
 	color: #9E9E9E;
-	text-decoration-color: #737373;
 }
 .forum-page .CInfo a:hover,
 .forum-page .CInfo a:focus {
 	color: #C0C0C0;
-	text-decoration-color: #C0C0C0;
 	text-shadow: 1px 1px 2px #000;
 }
 .sb-butns .forum-loading {
@@ -875,7 +875,7 @@ textarea.forum-textarea { min-height: 92px; resize: vertical; }
 	font-size: 95%;
 	letter-spacing: 1px;
 }
-.forum-main .forum-topic-link { color: #9E9E9E; text-decoration: underline; text-decoration-color: #737373; text-underline-offset: 2px; }
+.forum-main .forum-topic-link { color: #9E9E9E; text-decoration: underline; }
 .forum-main .forum-topic-link:hover { color: #C0C0C0; text-decoration-color: #C0C0C0; text-shadow: 1px 1px 2px #000; }
 .forum-flags { display: block; padding: 3px 0px 0px 0px; color: #B77777; }
 .forum-post {
@@ -1078,19 +1078,13 @@ textarea.forum-textarea { min-height: 145px; }
 	text-shadow: 1px 1px 2px #000;
 	font-family: Verdana, Tahoma, sans-serif;
 }
-.Cinfo,p {
-	padding-bottom: 12px;
-}
 .CInfo a:link, .CInfo a:active, .CInfo a:visited,
 .VInfo a:link, .VInfo a:active, .VInfo a:visited {
 	color: #829EAE;
 	text-decoration: underline;
-	text-decoration-color: #4B6472;
-	text-underline-offset: 2px;
 }
 .CInfo a:hover, .VInfo a:hover {
 	color: #D5EAF4;
-	text-decoration-color: #A9CFDF;
 	text-shadow: 0px 0px 5px #557D90;
 }
 .project-feature {
@@ -1132,6 +1126,11 @@ textarea.forum-textarea { min-height: 145px; }
 	letter-spacing: 1px;
 	font-family: "Courier New", Courier, monospace;
 }
+.project-kicker img {
+	margin: 0px 6px 0px 0px;
+	border: 0px;
+	vertical-align: middle;
+}
 .project-title {
 	padding: 0px 0px 7px 0px;
 	margin: 0px;
@@ -1156,6 +1155,47 @@ textarea.forum-textarea { min-height: 145px; }
 	padding: 0px 0px 12px 0px;
 	margin: 0px 0px 12px 0px;
 	border-bottom: 1px dotted #303A40;
+}
+.project-compact-last {
+	border-bottom: 0px;
+	margin-bottom: 0px;
+	padding-bottom: 0px;
+}
+.studio-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 0px 0px 4px 0px;
+}
+.studio-table td {
+	vertical-align: top;
+	padding: 0px 0px 10px 0px;
+	border-bottom: 1px dotted #303A40;
+}
+.studio-table tr:last-child td {
+	border-bottom: 0px;
+}
+.studio-badge {
+	width: 102px;
+	padding-right: 14px;
+}
+.studio-table img {
+	border: 0px;
+	display: block;
+}
+.badge-rail {
+	padding-top: 14px;
+	padding-bottom: 0px;
+}
+.badge-rail a,
+.badge-rail > img {
+	margin: 0px 8px 0px 0px;
+	border: 0px;
+	vertical-align: middle;
+	text-decoration: none;
+}
+.badge-rail a img {
+	border: 0px;
+	vertical-align: middle;
 }
 
 
@@ -1210,6 +1250,7 @@ textarea.forum-textarea { min-height: 145px; }
 .footer-roller-viewport { height: 20px; overflow: hidden; }
 .footer-roller-line {
 	margin: 0;
+	padding: 0;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -1271,25 +1312,23 @@ textarea.forum-textarea { min-height: 145px; }
 	padding: 0px;
 	margin: 0px;
 	display: block;
-	width: 30px;
-	height: 30px;
-	background: linear-gradient(#60656A 0%, #292D30 45%, #111315 55%, #32373A 100%);
-	border: 1px solid #090A0B;
-	box-shadow: inset 0px 0px 0px 1px #697075, inset 0px -2px 3px #08090A;
+	width: 32px;
+	height: 32px;
+	background: url('../theme/ft-butns.jpg') no-repeat 0px 0px;
+	border: 0px;
 	overflow: hidden;
 	position: relative;
 }
 .ft-social:hover {
-	background: linear-gradient(#81878C 0%, #3B4145 45%, #181B1D 55%, #454C50 100%);
-	box-shadow: inset 0px 0px 0px 1px #92999E, 0px 0px 5px #6F8791;
+	background: url('../theme/ft-butns.jpg') no-repeat 0px -32px;
 }
 .ft-social img {
 	padding: 0px;
-	margin: 6px;
-	width: 18px;
-	height: 18px;
+	margin: 8px 0px 0px 8px;
+	width: 16px;
+	height: 16px;
 	display: block;
-	filter: drop-shadow(1px 1px 1px #000000);
+	border: 0px;
 }
 .ft-butn-2 {
 	padding: 0px;
